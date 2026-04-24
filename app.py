@@ -1,96 +1,44 @@
 from flask import Flask, render_template, jsonify, request
-import socket
-import json
+import subprocess
 import threading
 import time
 import re
 import serial
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='', static_folder='static')
 
-# ── WTBU daemon socket ──────────────────────────────────────────────────────
-SOCKET_PATH = '/tmp/wtbu_socket'
+# ── WTBU via wtbu.py CLI ────────────────────────────────────────────────────
+WTBU_PY = '/home/wtbu/driver/wtbu.py'
 RELAYS = ['main', 'fireflies', 'well-pump', 'rain-pump', 'pc', 'free1', 'free2', 'free3']
 
-import queue as _queue_mod
-_daemon_queue  = _queue_mod.Queue(maxsize=4)
-_last_response = {'monitor': '', 'relays': '', 'valves': ''}
+
+def _parse_wtbu_output(stdout, stderr):
+    if stderr:
+        last_line = stderr.strip().splitlines()[-1]
+        return {'error': last_line}
+    result = {'monitor': '', 'relays': '', 'valves': ''}
+    for line in stdout.splitlines():
+        if line.startswith('Monitor: '):
+            result['monitor'] = line[9:]
+        elif line.startswith('Relays: '):
+            result['relays'] = line[8:]
+        elif line.startswith('Valves: '):
+            result['valves'] = line[8:]
+    return result
 
 
-def _raw_connect(command):
-    last_err = None
-    for attempt in range(3):
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        try:
-            sock.connect(SOCKET_PATH)
-            sock.sendall(json.dumps(command).encode())
-            data = sock.recv(500).decode('utf-8')
-            lines = data.splitlines()
-            return {
-                'monitor': lines[0] if len(lines) > 0 else '',
-                'relays':  lines[1] if len(lines) > 1 else '',
-                'valves':  lines[2] if len(lines) > 2 else ''
-            }
-        except socket.timeout:
-            # Commando is verzonden, daemon verwerkt het nog — niet opnieuw proberen
-            return {'monitor': '', 'relays': '', 'valves': ''}
-        except OSError as e:
-            last_err = e
-            if attempt < 2:
-                time.sleep(0.05)
-        finally:
-            sock.close()
-    raise last_err or OSError('Connection failed')
-
-
-def _daemon_worker():
-    """Enige thread die ooit verbinding maakt met de daemon."""
-    status_cmd = {
-        'on': [], 'off': [], 'reset_relays': False, 'status': True,
-        'wait': False, 'valves': [], 'close_all': False, 'shutdown': False,
-        'user': 'web'
-    }
-    while True:
-        try:
-            cmd, event, holder = _daemon_queue.get(timeout=0.35)
-        except _queue_mod.Empty:
-            # Geen request → stuur keepalive
-            try:
-                r = _raw_connect(status_cmd)
-                _last_response.update(r)
-            except OSError:
-                pass
-            continue
-        try:
-            r = _raw_connect(cmd)
-            _last_response.update(r)
-            holder[0] = r
-        except OSError as e:
-            holder[0] = {'error': str(e)}
-        finally:
-            event.set()
-
-
-threading.Thread(target=_daemon_worker, daemon=True).start()
-
-
-def send_command(command, timeout=8):
-    holder = [None]
-    event  = threading.Event()
+def run_wtbu(*args):
     try:
-        _daemon_queue.put((command, event, holder), block=True, timeout=3)
-    except _queue_mod.Full:
-        return {'error': 'Daemon bezig, probeer opnieuw'}
-    event.wait(timeout=timeout)
-    return holder[0] or {'error': 'Timeout'}
-
-
-def base_command():
-    return {
-        'on': [], 'off': [], 'reset_relays': False, 'status': False,
-        'wait': False, 'valves': [], 'close_all': False, 'shutdown': False,
-        'user': 'web'
-    }
+        proc = subprocess.run(
+            [WTBU_PY] + list(args),
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            universal_newlines=True, timeout=10
+        )
+        return _parse_wtbu_output(proc.stdout, proc.stderr)
+    except subprocess.TimeoutExpired:
+        return {'error': 'Timeout'}
+    except Exception as e:
+        return {'error': str(e)}
 
 
 # ── Firefly serial ──────────────────────────────────────────────────────────
@@ -190,24 +138,19 @@ def _send_firefly(cmd: str):
 # ── Routes: WTBU ────────────────────────────────────────────────────────────
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('Water Testbed SCADA.html')
 
 
 @app.route('/api/status')
 def status():
-    cmd = base_command()
-    cmd['status'] = True
-    return jsonify(send_command(cmd))
+    return jsonify(run_wtbu('--status'))
 
 
 @app.route('/api/relay/<relay>/<action>', methods=['POST'])
 def relay(relay, action):
     if relay not in RELAYS or action not in ['on', 'off']:
         return jsonify({'error': 'Ongeldige relay of actie'}), 400
-    cmd = base_command()
-    cmd['on']  = [relay] if action == 'on'  else []
-    cmd['off'] = [relay] if action == 'off' else []
-    return jsonify(send_command(cmd))
+    return jsonify(run_wtbu(f'--{action}', relay))
 
 
 @app.route('/api/valve', methods=['POST'])
@@ -222,30 +165,22 @@ def valve():
         return jsonify({'error': 'Valve moet tussen 1 en 9 zijn'}), 400
     if not (0 <= position <= 90):
         return jsonify({'error': 'Positie moet tussen 0 en 90 graden zijn'}), 400
-    cmd = base_command()
-    cmd['valves'] = [[valve_num, position]]
-    return jsonify(send_command(cmd))
+    return jsonify(run_wtbu('--valves', f'{valve_num}={position}'))
 
 
 @app.route('/api/close-all', methods=['POST'])
 def close_all():
-    cmd = base_command()
-    cmd['close_all'] = True
-    return jsonify(send_command(cmd))
+    return jsonify(run_wtbu('--close-all'))
 
 
 @app.route('/api/reset-relays', methods=['POST'])
 def reset_relays():
-    cmd = base_command()
-    cmd['reset_relays'] = True
-    return jsonify(send_command(cmd))
+    return jsonify(run_wtbu('--reset-relays'))
 
 
 @app.route('/api/shutdown', methods=['POST'])
 def shutdown():
-    cmd = base_command()
-    cmd['shutdown'] = True
-    return jsonify(send_command(cmd))
+    return jsonify(run_wtbu('--shutdown'))
 
 
 # ── Routes: Firefly ─────────────────────────────────────────────────────────
