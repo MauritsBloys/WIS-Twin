@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lekkage Meting · Water Testbed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg-0:#060b16; --bg-1:#0b1526; --bg-2:#0f1d33; --bg-3:#14243f;
+    --panel:#0d1b2f; --panel-2:#112744;
+    --line:#1d3559; --line-2:#264774;
+    --ink:#d8e6f5; --ink-dim:#8aa4c7; --ink-mute:#506a8c;
+    --cyan:#4fc3f7; --cyan-hi:#81d4fa;
+    --amber:#ffb547; --green:#5ddc8a; --green-dim:#1e5a34;
+    --red:#ff5c6c; --red-dim:#5a1820;
+    --yellow:#ffd54f; --purple:#b06cff;
+    --grid:#142744; --radius:10px;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body {
+    background:var(--bg-0); color:var(--ink);
+    font-family:'IBM Plex Sans',system-ui,sans-serif;
+    font-size:13px; min-height:100vh;
+  }
+
+  /* ── Topbar ── */
+  .topbar {
+    background:var(--panel); border-bottom:1px solid var(--line);
+    padding:0 20px; height:48px;
+    display:flex; align-items:center; gap:14px;
+  }
+  .back-link {
+    color:var(--ink-dim); text-decoration:none; font-size:12px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .back-link:hover { color:var(--ink); }
+  .topbar-sep { color:var(--line-2); }
+  .topbar-title {
+    font-size:14px; font-weight:600; color:var(--ink);
+    letter-spacing:.05em; text-transform:uppercase;
+  }
+
+  /* ── Layout ── */
+  .main {
+    padding:20px; display:flex; flex-direction:column;
+    gap:16px; max-width:1400px; margin:0 auto;
+  }
+
+  /* ── Card ── */
+  .card {
+    background:var(--panel); border:1px solid var(--line);
+    border-radius:var(--radius); padding:16px 20px;
+  }
+  .card-title {
+    font-size:11px; font-weight:600; color:var(--ink-mute);
+    letter-spacing:.1em; text-transform:uppercase; margin-bottom:14px;
+  }
+
+  /* ── Controls ── */
+  .controls-row {
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  }
+  .ctrl-group { display:flex; align-items:center; gap:7px; }
+  .ctrl-label { font-size:12px; color:var(--ink-dim); }
+  .ctrl-input {
+    background:var(--bg-2); border:1px solid var(--line-2);
+    border-radius:6px; color:var(--ink);
+    font-family:'JetBrains Mono',monospace; font-size:13px;
+    padding:6px 10px; width:88px; outline:none;
+  }
+  .ctrl-input:focus { border-color:var(--cyan); }
+  .ctrl-input:disabled { opacity:.4; cursor:not-allowed; }
+  .ctrl-sep { width:1px; height:24px; background:var(--line); }
+
+  /* ── Buttons ── */
+  .btn {
+    border:none; border-radius:6px; cursor:pointer;
+    font-family:inherit; font-size:13px; font-weight:600;
+    padding:7px 18px; transition:opacity .15s; white-space:nowrap;
+  }
+  .btn:disabled { opacity:.35; cursor:not-allowed; }
+  .btn-start { background:var(--green); color:#0b2018; }
+  .btn-start:not(:disabled):hover { opacity:.82; }
+  .btn-stop  { background:var(--red);   color:#fff; }
+  .btn-stop:not(:disabled):hover  { opacity:.82; }
+  .btn-export {
+    background:var(--panel-2); border:1px solid var(--line-2); color:var(--cyan);
+  }
+  .btn-export:not(:disabled):hover { border-color:var(--cyan); }
+
+  /* ── Status badge ── */
+  .badge {
+    display:inline-flex; align-items:center; gap:6px;
+    padding:4px 11px; border-radius:20px;
+    font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase;
+  }
+  .dot { width:7px; height:7px; border-radius:50%; }
+  .badge-actief  { background:var(--green-dim); color:var(--green); }
+  .badge-actief .dot { background:var(--green); box-shadow:0 0 6px var(--green); }
+  .badge-gestopt { background:var(--bg-3); color:var(--ink-mute); }
+  .badge-gestopt .dot { background:var(--ink-mute); }
+
+  /* ── Stat ── */
+  .stat { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-dim); }
+  .stat b { color:var(--ink); font-weight:600; }
+
+  /* ── Chart ── */
+  .chart-wrap { position:relative; height:460px; }
+
+  /* ── Sensor grid ── */
+  .sensor-grid {
+    display:grid; grid-template-columns:repeat(7,1fr); gap:8px;
+  }
+  @media(max-width:900px) { .sensor-grid { grid-template-columns:repeat(4,1fr); } }
+  .sensor-cell {
+    background:var(--bg-2); border:1px solid var(--line);
+    border-radius:8px; padding:10px 8px; text-align:center;
+    border-top-width:3px;
+  }
+  .sensor-cell-label {
+    font-size:10px; font-weight:700; letter-spacing:.1em;
+    text-transform:uppercase; margin-bottom:5px;
+  }
+  .sensor-cell-val {
+    font-family:'JetBrains Mono',monospace;
+    font-size:20px; font-weight:600; line-height:1;
+  }
+  .sensor-cell-unit { font-size:10px; color:var(--ink-mute); margin-top:3px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="back-link" href="/">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <path d="M19 12H5M12 5l-7 7 7 7"/>
+    </svg>
+    SCADA
+  </a>
+  <span class="topbar-sep">|</span>
+  <span class="topbar-title">Lekkage Meting</span>
+</div>
+
+<div class="main">
+
+  <!-- Controls -->
+  <div class="card">
+    <div class="card-title">Meting instellen</div>
+    <div class="controls-row">
+      <div class="ctrl-group">
+        <label class="ctrl-label" for="inp-interval">Interval</label>
+        <input class="ctrl-input" id="inp-interval" type="number" value="1" min="0.1" max="60" step="0.1">
+        <span class="ctrl-label">s</span>
+      </div>
+      <div class="ctrl-sep"></div>
+      <button class="btn btn-start" id="btn-start">▶&nbsp; Start</button>
+      <button class="btn btn-stop"  id="btn-stop"  disabled>■&nbsp; Stop</button>
+      <div class="badge badge-gestopt" id="status-badge">
+        <div class="dot"></div>
+        <span id="status-text">Gestopt</span>
+      </div>
+      <div class="ctrl-sep"></div>
+      <div class="stat">Tijd:&nbsp;<b id="stat-elapsed">—</b></div>
+      <div class="stat">Samples:&nbsp;<b id="stat-samples">0</b></div>
+      <div class="ctrl-sep"></div>
+      <button class="btn btn-export" id="btn-export" disabled>⬇&nbsp; Download CSV</button>
+    </div>
+  </div>
+
+  <!-- Chart -->
+  <div class="card">
+    <div class="card-title">h(t) — Waterhoogte over tijd</div>
+    <div class="chart-wrap">
+      <canvas id="ht-chart"></canvas>
+    </div>
+  </div>
+
+  <!-- Live sensor values -->
+  <div class="card">
+    <div class="card-title">Actuele sensorwaarden</div>
+    <div class="sensor-grid" id="sensor-grid"></div>
+  </div>
+
+</div>
+
+<script>
+const COLORS = ['#4fc3f7','#ffb547','#5ddc8a','#b06cff','#ff5c6c','#ffd54f','#81d4fa'];
+const NAMES  = ['S1','S2','S3','S4','S5','S6','S7'];
+
+// Build sensor cells
+const grid = document.getElementById('sensor-grid');
+NAMES.forEach((name, i) => {
+  const cell = document.createElement('div');
+  cell.className = 'sensor-cell';
+  cell.style.borderTopColor = COLORS[i];
+  cell.innerHTML = `
+    <div class="sensor-cell-label" style="color:${COLORS[i]}">${name}</div>
+    <div class="sensor-cell-val"  id="sv-${i+1}" style="color:${COLORS[i]}">—</div>
+    <div class="sensor-cell-unit">cm</div>`;
+  grid.appendChild(cell);
+});
+
+// Chart
+const chart = new Chart(document.getElementById('ht-chart').getContext('2d'), {
+  type: 'line',
+  data: {
+    labels: [],
+    datasets: NAMES.map((name, i) => ({
+      label: name,
+      data: [],
+      borderColor: COLORS[i],
+      backgroundColor: COLORS[i] + '18',
+      borderWidth: 2,
+      pointRadius: 0,
+      tension: 0.15,
+    }))
+  },
+  options: {
+    animation: false,
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    scales: {
+      x: {
+        title: { display:true, text:'Tijd (s)', color:'#8aa4c7', font:{size:12} },
+        ticks: { color:'#8aa4c7', maxTicksLimit:14, font:{size:11},
+                 callback: v => typeof v === 'number' ? v.toFixed(1) : v },
+        grid:  { color:'#142744' },
+        border:{ color:'#1d3559' },
+      },
+      y: {
+        min: 0, max: 60,
+        title: { display:true, text:'Waterhoogte (cm)', color:'#8aa4c7', font:{size:12} },
+        ticks: { color:'#8aa4c7', stepSize:10, font:{size:11} },
+        grid:  { color:'#142744' },
+        border:{ color:'#1d3559' },
+      }
+    },
+    plugins: {
+      legend: { labels:{ color:'#8aa4c7', boxWidth:20, padding:16, font:{size:12} } },
+      tooltip: {
+        backgroundColor:'#0d1b2f', borderColor:'#1d3559', borderWidth:1,
+        titleColor:'#d8e6f5', bodyColor:'#8aa4c7',
+        callbacks: {
+          title: items => `t = ${Number(items[0].label).toFixed(2)} s`,
+          label: ctx => {
+            const v = ctx.parsed.y;
+            return ` ${NAMES[ctx.datasetIndex]}: ${v !== null ? v.toFixed(2)+' cm' : '—'}`;
+          }
+        }
+      }
+    }
+  }
+});
+
+// State
+let running    = false;
+let dataOffset = 0;
+let pollTimer  = null;
+let liveTimer  = null;
+
+const btnStart   = document.getElementById('btn-start');
+const btnStop    = document.getElementById('btn-stop');
+const btnExport  = document.getElementById('btn-export');
+const badge      = document.getElementById('status-badge');
+const statusTxt  = document.getElementById('status-text');
+const elElapsed  = document.getElementById('stat-elapsed');
+const elSamples  = document.getElementById('stat-samples');
+const inpInterval= document.getElementById('inp-interval');
+
+function setRunning(v) {
+  running = v;
+  btnStart.disabled   = v;
+  btnStop.disabled    = !v;
+  inpInterval.disabled = v;
+  if (v) {
+    badge.className = 'badge badge-actief';
+    statusTxt.textContent = 'Actief';
+  } else {
+    badge.className = 'badge badge-gestopt';
+    statusTxt.textContent = 'Gestopt';
+  }
+}
+
+async function startMeting() {
+  const interval = Math.max(0.1, parseFloat(inpInterval.value) || 1.0);
+  inpInterval.value = interval;
+  let res;
+  try {
+    res = await fetch('/api/meting/start', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({interval})
+    });
+  } catch(e) { alert('Verbindingsfout: ' + e); return; }
+  const data = await res.json();
+  if (data.error) { alert('Fout: ' + data.error); return; }
+
+  // Clear chart
+  chart.data.labels = [];
+  chart.data.datasets.forEach(ds => ds.data = []);
+  chart.update('none');
+  dataOffset = 0;
+  elElapsed.textContent = '0.0 s';
+  elSamples.textContent = '0';
+
+  setRunning(true);
+
+  // Poll data at ~2× sample rate, min 300ms
+  const pollMs = Math.max(300, interval * 500);
+  pollTimer = setInterval(pollData,   pollMs);
+  liveTimer = setInterval(pollStatus, 1000);
+}
+
+async function stopMeting() {
+  try { await fetch('/api/meting/stop', {method:'POST'}); } catch(e) {}
+  clearInterval(pollTimer);
+  clearInterval(liveTimer);
+  await pollData();    // flush remaining points
+  await pollStatus();
+  setRunning(false);
+  btnExport.disabled = dataOffset === 0;
+}
+
+async function pollData() {
+  let res;
+  try { res = await fetch(`/api/meting/data?since=${dataOffset}`); }
+  catch(e) { return; }
+  const { data, total } = await res.json();
+  if (!data.length) return;
+  data.forEach(row => {
+    chart.data.labels.push(row.t);
+    for (let i = 0; i < 7; i++) {
+      const v = row[`s${i+1}`];
+      chart.data.datasets[i].data.push((v !== null && v !== undefined) ? v : null);
+    }
+  });
+  dataOffset = total;
+  chart.update('none');
+  btnExport.disabled = false;
+}
+
+async function pollStatus() {
+  let res;
+  try { res = await fetch('/api/meting/status'); } catch(e) { return; }
+  const { running: r, samples, elapsed } = await res.json();
+  elElapsed.textContent = elapsed.toFixed(1) + ' s';
+  elSamples.textContent = samples;
+  if (!r && running) {  // server stopped (e.g. restart)
+    clearInterval(pollTimer);
+    clearInterval(liveTimer);
+    setRunning(false);
+  }
+}
+
+async function updateLiveSensors() {
+  let res;
+  try { res = await fetch('/api/firefly/status'); } catch(e) { return; }
+  const { sensors } = await res.json();
+  for (let i = 1; i <= 7; i++) {
+    const v = sensors[String(i)]?.cm;
+    document.getElementById(`sv-${i}`).textContent =
+      (v !== null && v !== undefined) ? v.toFixed(2) : '—';
+  }
+}
+
+btnStart.addEventListener('click', startMeting);
+btnStop.addEventListener('click',  stopMeting);
+btnExport.addEventListener('click', () => { window.location.href = '/api/meting/export'; });
+
+// Always show live values, even before measuring
+setInterval(updateLiveSensors, 1000);
+updateLiveSensors();
+</script>
+
+</body>
+</html>

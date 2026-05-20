@@ -1,0 +1,15 @@
+#!/usr/bin/env python3
+"""
+Lekkage Meting — launcher
+
+Zorg dat app.py draait, open dan de meetpagina in de browser.
+"""
+import webbrowser, time
+
+URL = 'http://localhost:5000/meting'
+
+if __name__ == '__main__':
+    print(f'Opening {URL}')
+    print('(Zorg dat app.py draait: python3 app.py)')
+    time.sleep(0.3)
+    webbrowser.open(URL)

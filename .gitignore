@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+venv/
+
+# MATLAB generated/large binary data
+digital_twin/digital_twin/WIS-sim/simulation/mat/
+digital_twin/digital_twin/WIS-sim/pstc/*.mat
+digital_twin/digital_twin/WIS-twin/data/twin_log_*.csv
+
+# Simulink binary models
+*.slx
+*.slxc
+
+# OS
+.DS_Store
+Thumbs.db

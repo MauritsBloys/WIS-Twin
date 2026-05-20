@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<title>WIS Digital Twin — Technische Documentatie</title>
+<script>
+window.MathJax = {
+  tex: { inlineMath: [['\\(','\\)'], ['$','$']], displayMath: [['\\[','\\]'], ['$$','$$']] },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+body { font-family: Georgia, 'Times New Roman', serif; font-size: 11pt; color: #1a1a1a;
+       background: #fff; margin: 0; padding: 0; line-height: 1.70; }
+a { color: #1a4a8a; }
+.page { max-width: 210mm; margin: 0 auto; padding: 20mm 22mm; }
+
+h1 { font-size: 22pt; color: #0d2b5e; border-bottom: 3px solid #0d2b5e; padding-bottom: 6px; margin-top: 0; }
+h2 { font-size: 15pt; color: #0d2b5e; border-bottom: 1px solid #c0cce0; padding-bottom: 4px; margin-top: 2em; }
+h3 { font-size: 12pt; color: #1a4a8a; margin-top: 1.6em; }
+h4 { font-size: 11pt; color: #333; font-style: italic; margin-top: 1.2em; }
+p  { margin: 0.5em 0 0.9em; }
+ul, ol { margin: 0.3em 0 0.9em 1.4em; }
+li { margin-bottom: 0.4em; }
+code { font-family: 'Courier New', monospace; font-size: 9.5pt; background: #f0f4f8;
+       padding: 1px 4px; border-radius: 3px; }
+pre { background: #f0f4f8; border-left: 3px solid #4a7cc7; padding: 10px 14px;
+      font-size: 9pt; font-family: 'Courier New', monospace; overflow-x: auto;
+      margin: 0.8em 0; line-height: 1.4; }
+strong { color: #0d2b5e; }
+
+.box { border-left: 4px solid #4a7cc7; background: #f0f5ff; padding: 12px 16px;
+       margin: 1.2em 0; border-radius: 0 6px 6px 0; }
+.box.green  { border-color: #2a7a4a; background: #f0fff4; }
+.box.orange { border-color: #c07020; background: #fff8f0; }
+.box.red    { border-color: #a02020; background: #fff0f0; }
+.box-title  { font-weight: bold; color: #0d2b5e; margin-bottom: 6px; }
+
+table { border-collapse: collapse; width: 100%; margin: 0.9em 0; font-size: 10pt; }
+th { background: #0d2b5e; color: #fff; padding: 7px 10px; text-align: left; }
+td { padding: 6px 10px; border-bottom: 1px solid #dde3ec; vertical-align: top; }
+tr:nth-child(even) td { background: #f5f7fb; }
+
+figure { margin: 1.6em 0; text-align: center; }
+figcaption { font-size: 9.5pt; color: #555; margin-top: 8px; font-style: italic; }
+svg text { font-family: Arial, sans-serif; }
+
+.cover { text-align: center; padding: 60px 0 40px; }
+.cover h1 { font-size: 28pt; border: none; }
+.cover .subtitle { font-size: 14pt; color: #4a6090; margin: 8px 0; }
+.cover .meta { font-size: 10pt; color: #666; margin-top: 40px; line-height: 2.2; }
+.cover hr { border: none; border-top: 2px solid #0d2b5e; margin: 24px auto; width: 60%; }
+
+.toc { margin: 1em 0; }
+.toc a { text-decoration: none; color: #1a1a1a; }
+.toc li { padding: 3px 0; }
+.toc .ch { font-weight: bold; color: #0d2b5e; }
+.toc .sub { padding-left: 22px; font-size: 10pt; color: #555; }
+
+.eq-block { margin: 1.2em 2.5em; }
+
+/* Analogie-kaders */
+.analogy { border: 1px solid #b0c4de; background: #f7faff; border-radius: 6px;
+           padding: 12px 16px; margin: 1.2em 0; }
+.analogy-title { font-weight: bold; color: #1a4a8a; margin-bottom: 4px; }
+
+/* Formule-uitleg kaders */
+.formula-explain { background: #fffbf0; border: 1px dashed #c8a020; border-radius: 4px;
+                   padding: 10px 14px; margin: 0.4em 0 1em; font-size: 10pt; }
+
+/* Genummerde stap-koppen */
+.step-header { display: flex; align-items: center; gap: 14px; margin-bottom: 0.4em; }
+.step-num { background: #0d2b5e; color: #fff; font-size: 13pt; font-weight: bold;
+            width: 36px; height: 36px; border-radius: 50%; display: flex;
+            align-items: center; justify-content: center; flex-shrink: 0; }
+.step-title { font-size: 14pt; color: #0d2b5e; font-weight: bold; }
+
+@media print {
+  .page { padding: 0; max-width: 100%; }
+  .page-break { page-break-after: always; }
+  .no-print { display: none; }
+  h2 { page-break-after: avoid; }
+  h3 { page-break-after: avoid; }
+  figure, pre, .box, .analogy { page-break-inside: avoid; }
+}
+@page { size: A4; margin: 2cm 2.2cm; }
+
+.print-btn { position: fixed; bottom: 20px; right: 20px; background: #0d2b5e; color: #fff;
+             border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer;
+             font-size: 11pt; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+.print-btn:hover { background: #1a4a8a; }
+</style>
+</head>
+<body>
+<button class="print-btn no-print" onclick="window.print()">Opslaan als PDF</button>
+<div class="page">
+
+<!-- ═══════════════ TITELBLAD ═══════════════ -->
+<div class="cover">
+  <h1>WIS Digital Twin</h1>
+  <div class="subtitle">Technische Documentatie</div>
+  <div class="subtitle">Water Infrastructuur Systeem — Kalman Filter &amp; MPC Regelaar</div>
+  <hr>
+  <div class="meta">
+    Bachelor Eindproject<br>
+    Bas Boot<br>
+    2026
+  </div>
+</div>
+<div class="page-break"></div>
+
+<!-- ═══════════════ INHOUDSOPGAVE ═══════════════ -->
+<h2 style="margin-top:0">Inhoudsopgave</h2>
+<ol class="toc">
+  <li class="ch"><a href="#h1">Inleiding</a></li>
+  <li class="ch"><a href="#h2">De fysieke WIS-installatie</a>
+    <ul>
+      <li class="sub"><a href="#h2-1">Bassins en stuwen</a></li>
+      <li class="sub"><a href="#h2-2">Sensoren en actuatoren</a></li>
+      <li class="sub"><a href="#h2-3">Firefly hardware controller</a></li>
+    </ul>
+  </li>
+  <li class="ch"><a href="#h3">Wiskundig model — State-Space</a>
+    <ul>
+      <li class="sub"><a href="#h3-1">Wat is een state-space model?</a></li>
+      <li class="sub"><a href="#h3-2">Het Cantoni model voor open kanaalstroming</a></li>
+      <li class="sub"><a href="#h3-3">Discretisatie (ZOH)</a></li>
+    </ul>
+  </li>
+  <li class="ch"><a href="#h4">Het Kalman Filter</a>
+    <ul>
+      <li class="sub"><a href="#h4-1">Het schatten van een toestand</a></li>
+      <li class="sub"><a href="#h4-2">Stap 1: Voorspelling (Predict)</a></li>
+      <li class="sub"><a href="#h4-3">Stap 2: Innovatie</a></li>
+      <li class="sub"><a href="#h4-4">Stap 3: Kalman-versterking en update</a></li>
+      <li class="sub"><a href="#h4-5">Ruis-covarianties Q en R</a></li>
+      <li class="sub"><a href="#h4-6">Joseph-vorm voor numerieke stabiliteit</a></li>
+    </ul>
+  </li>
+  <li class="ch"><a href="#h5">Model Predictive Control (MPC)</a>
+    <ul>
+      <li class="sub"><a href="#h5-1">Concept: vooruitkijken</a></li>
+      <li class="sub"><a href="#h5-2">Voorspellingsmatrices</a></li>
+      <li class="sub"><a href="#h5-3">Kostenfunctie en beperkingen</a></li>
+      <li class="sub"><a href="#h5-4">Kwadratisch programma (QP)</a></li>
+    </ul>
+  </li>
+  <li class="ch"><a href="#h6">Software-architectuur</a></li>
+  <li class="ch"><a href="#h7">De hoofdlus stap voor stap</a></li>
+  <li class="ch"><a href="#h8">Het web-dashboard</a></li>
+  <li class="ch"><a href="#h9">Opstarten</a></li>
+</ol>
+<div class="page-break"></div>
+
+<!-- ═══════════════ H1: INLEIDING ═══════════════ -->
+<h1 id="h1">1 &nbsp; Inleiding</h1>
+<p>
+Dit document beschrijft het <strong>WIS Digital Twin</strong>-systeem volledig: van de fysieke waterinstallatie tot de software die er real-time mee meeloopt. Het is bedoeld voor iedereen die het project voor het eerst ziet — ook zonder voorkennis van regeltechniek of Kalman filters.
+</p>
+<p>
+Het systeem combineert drie vakgebieden die hieronder allemaal van de grond af worden opgebouwd:
+</p>
+<ul>
+  <li><strong>Systeemidentificatie</strong> — een wiskundig model van een waterinstallatie opstellen</li>
+  <li><strong>Toestandschatting</strong> — het Kalman filter raadt de interne toestand van het systeem, ook als die niet direct meetbaar is</li>
+  <li><strong>Optimale regeling</strong> — Model Predictive Control (MPC) stuurt de waterpeilen naar gewenste waarden</li>
+</ul>
+
+<h3>Wat is een digital twin?</h3>
+<p>
+Een <strong>digital twin</strong> is een virtueel model van een fysiek systeem dat in real-time meeloopt. Stel je voor dat je naast de echte waterinstallatie een computerprogramma draait dat elke seconde de meting van de installatie binnenkrijgt, bijhoudt hoe het systeem zich gedraagt, en tegelijk berekent wat de beste aansturing is voor de volgende seconde. Dat programma is de digital twin.
+</p>
+
+<div class="analogy">
+  <div class="analogy-title">Analogie: een navigatie-app</div>
+  Een navigatie-app weet waar je auto is (via GPS), heeft een kaart van het wegennet (het model), en berekent elke seconde opnieuw de snelste route (de optimale aansturing). Als de werkelijke positie afwijkt van wat de app verwachtte — bijv. door een verkeersopstopping — past hij de route aan. De digital twin doet hetzelfde, maar dan voor waterpeilen en stuwen.
+</div>
+
+<figure>
+<svg width="560" height="180" viewBox="0 0 560 180">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#0d2b5e"/>
+    </marker>
+  </defs>
+  <rect x="20" y="40" width="200" height="110" rx="8" fill="#e8f0fc" stroke="#0d2b5e" stroke-width="2"/>
+  <text x="120" y="65" text-anchor="middle" font-weight="bold" fill="#0d2b5e" font-size="12">Fysieke Installatie</text>
+  <text x="120" y="86" text-anchor="middle" fill="#444" font-size="10">Bassins, stuwen, water</text>
+  <text x="120" y="103" text-anchor="middle" fill="#444" font-size="10">Firefly hardware</text>
+  <text x="120" y="120" text-anchor="middle" fill="#444" font-size="10">Sensoren (waterpeilen)</text>
+  <text x="120" y="137" text-anchor="middle" fill="#444" font-size="10">Servo-actuatoren</text>
+
+  <rect x="340" y="40" width="200" height="110" rx="8" fill="#e8fcf0" stroke="#2a7a4a" stroke-width="2"/>
+  <text x="440" y="65" text-anchor="middle" font-weight="bold" fill="#2a7a4a" font-size="12">Digital Twin (software)</text>
+  <text x="440" y="86" text-anchor="middle" fill="#444" font-size="10">State-space model</text>
+  <text x="440" y="103" text-anchor="middle" fill="#444" font-size="10">Kalman filter (schatting)</text>
+  <text x="440" y="120" text-anchor="middle" fill="#444" font-size="10">MPC regelaar</text>
+  <text x="440" y="137" text-anchor="middle" fill="#444" font-size="10">Dashboard + logging</text>
+
+  <line x1="220" y1="85" x2="340" y2="85" stroke="#0d2b5e" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="280" y="78" text-anchor="middle" fill="#444" font-size="9">metingen y</text>
+  <line x1="340" y1="115" x2="220" y2="115" stroke="#2a7a4a" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="280" y="131" text-anchor="middle" fill="#444" font-size="9">stuurcommando u</text>
+</svg>
+<figcaption>Figuur 1.1 — De digital twin loopt parallel aan de fysieke installatie.</figcaption>
+</figure>
+
+<p>
+In dit project is de WIS een laboratoriumopstelling met drie waterreservoirs (bassins) verbonden door stelbare stuwen. De digital twin berekent elke seconde de optimale stuwposities en houdt bij hoe nauwkeurig zijn eigen model nog de werkelijkheid beschrijft.
+</p>
+<div class="page-break"></div>
+
+<!-- ═══════════════ H2: FYSIEKE INSTALLATIE ═══════════════ -->
+<h1 id="h2">2 &nbsp; De fysieke WIS-installatie</h1>
+
+<h2 id="h2-1">2.1 Bassins en stuwen</h2>
+<p>
+De WIS (Water Infrastructuur Systeem) bestaat uit <strong>drie gekoppelde bassins</strong> — Pool 1, Pool 2 en Pool 3 — verbonden door <strong>drie verstelbare stuwen</strong> (gates). Elke stuw regelt hoeveel water er van het ene naar het andere bassin stroomt.
+</p>
+<p>
+Water stroomt altijd van het hogere naar het lagere bassin, net als in een echte rivier. De stuw bepaalt de doorlaatopening: helemaal gesloten (geen doorstroom) tot helemaal open (maximale doorstroom). Door de stuwen slim aan te sturen, kunnen de waterpeilen op gewenste waarden gehouden worden.
+</p>
+
+<figure>
+<svg width="560" height="220" viewBox="0 0 560 220">
+  <defs>
+    <marker id="a2" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+      <polygon points="0 0,7 2.5,0 5" fill="#1a4a8a"/>
+    </marker>
+  </defs>
+  <!-- Pool 1 -->
+  <rect x="20" y="60" width="140" height="110" rx="4" fill="#cde4fa" stroke="#1a4a8a" stroke-width="2"/>
+  <text x="90" y="82" text-anchor="middle" font-weight="bold" fill="#0d2b5e" font-size="13">Pool 1</text>
+  <rect x="22" y="112" width="136" height="56" fill="#4a90d9" opacity="0.5"/>
+  <text x="90" y="105" text-anchor="middle" fill="#0d2b5e" font-size="10">y₁ = 0,25 m</text>
+  <line x1="60" y1="62" x2="60" y2="112" stroke="#c03030" stroke-width="2" stroke-dasharray="3,2"/>
+  <circle cx="60" cy="60" r="6" fill="#c03030"/>
+  <text x="52" y="50" fill="#c03030" font-size="9">sensor</text>
+
+  <!-- Gate 1 -->
+  <rect x="160" y="100" width="30" height="50" rx="3" fill="#ffd080" stroke="#c07020" stroke-width="2"/>
+  <text x="175" y="120" text-anchor="middle" fill="#804010" font-size="9">Gate</text>
+  <text x="175" y="133" text-anchor="middle" fill="#804010" font-size="9">1</text>
+  <text x="175" y="158" text-anchor="middle" fill="#804010" font-size="8">u₁ ∈ [0,255]</text>
+
+  <!-- Pool 2 -->
+  <rect x="190" y="60" width="140" height="110" rx="4" fill="#cde4fa" stroke="#1a4a8a" stroke-width="2"/>
+  <text x="260" y="82" text-anchor="middle" font-weight="bold" fill="#0d2b5e" font-size="13">Pool 2</text>
+  <rect x="192" y="118" width="136" height="50" fill="#4a90d9" opacity="0.5"/>
+  <text x="260" y="105" text-anchor="middle" fill="#0d2b5e" font-size="10">y₂ = 0,20 m</text>
+  <line x1="230" y1="62" x2="230" y2="118" stroke="#c03030" stroke-width="2" stroke-dasharray="3,2"/>
+  <circle cx="230" cy="60" r="6" fill="#c03030"/>
+  <text x="222" y="50" fill="#c03030" font-size="9">sensor</text>
+
+  <!-- Gate 2 -->
+  <rect x="330" y="100" width="30" height="50" rx="3" fill="#ffd080" stroke="#c07020" stroke-width="2"/>
+  <text x="345" y="120" text-anchor="middle" fill="#804010" font-size="9">Gate</text>
+  <text x="345" y="133" text-anchor="middle" fill="#804010" font-size="9">2</text>
+  <text x="345" y="158" text-anchor="middle" fill="#804010" font-size="8">u₂ ∈ [0,255]</text>
+
+  <!-- Pool 3 -->
+  <rect x="360" y="60" width="140" height="110" rx="4" fill="#cde4fa" stroke="#1a4a8a" stroke-width="2"/>
+  <text x="430" y="82" text-anchor="middle" font-weight="bold" fill="#0d2b5e" font-size="13">Pool 3</text>
+  <rect x="362" y="122" width="136" height="46" fill="#4a90d9" opacity="0.5"/>
+  <text x="430" y="105" text-anchor="middle" fill="#0d2b5e" font-size="10">y₃ = 0,15 m</text>
+  <line x1="400" y1="62" x2="400" y2="122" stroke="#c03030" stroke-width="2" stroke-dasharray="3,2"/>
+  <circle cx="400" cy="60" r="6" fill="#c03030"/>
+  <text x="392" y="50" fill="#c03030" font-size="9">sensor</text>
+
+  <!-- Gate 3 (afvoer rechts) -->
+  <rect x="500" y="100" width="30" height="50" rx="3" fill="#ffd080" stroke="#c07020" stroke-width="2"/>
+  <text x="515" y="120" text-anchor="middle" fill="#804010" font-size="9">Gate</text>
+  <text x="515" y="133" text-anchor="middle" fill="#804010" font-size="9">3</text>
+  <text x="515" y="158" text-anchor="middle" fill="#804010" font-size="8">u₃ ∈ [0,255]</text>
+
+  <line x1="135" y1="135" x2="158" y2="135" stroke="#1a4a8a" stroke-width="2" marker-end="url(#a2)"/>
+  <line x1="190" y1="135" x2="188" y2="135" stroke="#1a4a8a" stroke-width="2" marker-end="url(#a2)"/>
+  <line x1="305" y1="135" x2="328" y2="135" stroke="#1a4a8a" stroke-width="2" marker-end="url(#a2)"/>
+  <line x1="360" y1="135" x2="358" y2="135" stroke="#1a4a8a" stroke-width="2" marker-end="url(#a2)"/>
+
+  <text x="280" y="200" text-anchor="middle" fill="#666" font-size="10" font-style="italic">Waterstroming van links naar rechts (afhankelijk van peilverschil)</text>
+</svg>
+<figcaption>Figuur 2.1 — Schematisch overzicht van de drie bassins met waterpeilen, sensoren (rood) en stelbare stuwen (geel).</figcaption>
+</figure>
+
+<h2 id="h2-2">2.2 Sensoren en actuatoren</h2>
+<p>
+Het systeem heeft twee soorten componenten: sensoren die meten en actuatoren die handelen.
+</p>
+<table>
+  <tr><th>Component</th><th>Type</th><th>Signaal</th><th>Bereik</th></tr>
+  <tr><td>Waterstandssensor pool 1, 2, 3</td><td>Sensor (meting)</td><td>\(y_1, y_2, y_3\) [m]</td><td>0 – 0,5 m</td></tr>
+  <tr><td>Servo gate 1, 2, 3</td><td>Actuator (aansturing)</td><td>\(u_1, u_2, u_3\)</td><td>0 – 255 (gesloten – volledig open)</td></tr>
+</table>
+<p>
+De <strong>servo-waarde</strong> (0 – 255) is een digitale positiecode: 0 = volledig gesloten stuw, 255 = volledig open stuw. Tussenstanden zijn ook mogelijk. De stuw mag per tijdstap maximaal 20 eenheden veranderen (<code>du_max = 20</code>) om mechanische slijtage te beperken — een te snelle beweging zou de servo beschadigen.
+</p>
+<p>
+De <strong>setpoints</strong> — de gewenste waterpeilen — zijn: Pool 1: 0,25 m, Pool 2: 0,20 m, Pool 3: 0,15 m. Het doel van de regelaar is om de werkelijke peilen zo dicht mogelijk bij deze waarden te houden, ook als er verstoringen optreden (bijv. een kleine lekkage of onverwachte inflow).
+</p>
+
+<h2 id="h2-3">2.3 Firefly hardware controller</h2>
+<p>
+De fysieke installatie wordt aangestuurd door een <strong>Firefly</strong>-microcontroller. Dit is een kleine computer die direct aan de sensoren en servo's gekoppeld is. De Firefly communiceert via een seriële PSTC-verbinding met MATLAB op de pc — vergelijk het met een USB-kabel waarover de Firefly elke seconde de gemeten waterpeilen doorstuurt en de nieuwe stuwposities terugkrijgt.
+</p>
+<p>
+In dit project kan de digital twin in twee modi draaien:
+</p>
+<ul>
+  <li><strong>Simulator-modus</strong> (<code>USE_HARDWARE = false</code>): de Firefly wordt gesimuleerd door het wiskundige model zelf. Er is geen hardware nodig — handig om het systeem te testen zonder de echte opstelling.</li>
+  <li><strong>Hardware-modus</strong> (<code>USE_HARDWARE = true</code>): echte metingen van de Firefly worden verwerkt. De regelaar stuurt de echte stuwen aan.</li>
+</ul>
+<div class="page-break"></div>
+
+<!-- ═══════════════ H3: STATE-SPACE ═══════════════ -->
+<h1 id="h3">3 &nbsp; Wiskundig model — State-Space</h1>
+
+<h2 id="h3-1">3.1 Wat is een state-space model?</h2>
+<p>
+Om een Kalman filter en een MPC regelaar te kunnen gebruiken, hebben we een wiskundig model van het systeem nodig: een stel vergelijkingen die beschrijven hoe de waterpeilen zich gedragen als je de stuwen beweegt.
+</p>
+<p>
+Waterstroming is in werkelijkheid complex: het hangt af van peilverschillen, debieten en kanaalgeometrie. Al die fysica kan worden samengevat in een <strong>state-space model</strong> — een compacte matrixvorm van alle vergelijkingen tegelijk.
+</p>
+
+<div class="analogy">
+  <div class="analogy-title">Analogie: een recept met ingrediënten en bereidingswijze</div>
+  Stel je hebt een recept waarbij de eindsmаak (uitgang y) afhangt van de huidige staat van de pan (toestand x) en wat je er aan toevoegt (ingang u). Het state-space model is precies dat recept: matrix A zegt "hoe verandert de pan vanzelf", matrix B zegt "wat doet een extra ingrediënt", en matrix C zegt "welk deel van de pan meet je met een lepelproef".
+</div>
+
+<div class="box">
+<div class="box-title">Continue state-space representatie</div>
+$$\dot{\mathbf{x}}(t) = \mathbf{A}\,\mathbf{x}(t) + \mathbf{B}\,\mathbf{u}(t)$$
+$$\mathbf{y}(t) = \mathbf{C}\,\mathbf{x}(t)$$
+</div>
+
+<div class="formula-explain">
+  <strong>Lees de eerste vergelijking als:</strong> de snelheid waarmee de toestand verandert (\(\dot{x}\)) = hoe het systeem zichzelf beïnvloedt (\(A \cdot x\)) + hoe de stuurcommando's de toestand veranderen (\(B \cdot u\)).<br><br>
+  <strong>Lees de tweede vergelijking als:</strong> wat de sensor meet (\(y\)) = een selectie uit de interne toestand (\(C \cdot x\)). Matrix C "kiest" welke toestanden zichtbaar zijn.
+</div>
+
+<figure>
+<svg width="500" height="160" viewBox="0 0 500 160">
+  <defs>
+    <marker id="a3" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+      <polygon points="0 0,7 2.5,0 5" fill="#0d2b5e"/>
+    </marker>
+  </defs>
+  <text x="10" y="72" fill="#0d2b5e" font-size="12" font-weight="bold">u(t)</text>
+  <line x1="45" y1="68" x2="95" y2="68" stroke="#0d2b5e" stroke-width="2" marker-end="url(#a3)"/>
+
+  <rect x="95" y="50" width="50" height="36" rx="4" fill="#dce8fc" stroke="#4a7cc7" stroke-width="2"/>
+  <text x="120" y="73" text-anchor="middle" fill="#0d2b5e" font-size="14" font-weight="bold">B</text>
+
+  <circle cx="200" cy="68" r="16" fill="#fff" stroke="#4a7cc7" stroke-width="2"/>
+  <text x="200" y="73" text-anchor="middle" fill="#4a7cc7" font-size="16">+</text>
+  <line x1="145" y1="68" x2="183" y2="68" stroke="#0d2b5e" stroke-width="2" marker-end="url(#a3)"/>
+
+  <rect x="225" y="50" width="60" height="36" rx="4" fill="#dce8fc" stroke="#4a7cc7" stroke-width="2"/>
+  <text x="255" y="67" text-anchor="middle" fill="#0d2b5e" font-size="11">∫ dt</text>
+  <text x="255" y="81" text-anchor="middle" fill="#666" font-size="9">(of 1/z)</text>
+  <line x1="216" y1="68" x2="224" y2="68" stroke="#0d2b5e" stroke-width="2" marker-end="url(#a3)"/>
+
+  <line x1="285" y1="68" x2="355" y2="68" stroke="#0d2b5e" stroke-width="2" marker-end="url(#a3)"/>
+  <text x="315" y="60" text-anchor="middle" fill="#c03030" font-size="11" font-weight="bold">x(t)</text>
+
+  <rect x="355" y="50" width="50" height="36" rx="4" fill="#dce8fc" stroke="#4a7cc7" stroke-width="2"/>
+  <text x="380" y="73" text-anchor="middle" fill="#0d2b5e" font-size="14" font-weight="bold">C</text>
+  <line x1="405" y1="68" x2="455" y2="68" stroke="#0d2b5e" stroke-width="2" marker-end="url(#a3)"/>
+  <text x="465" y="72" fill="#0d2b5e" font-size="12" font-weight="bold">y(t)</text>
+
+  <line x1="315" y1="68" x2="315" y2="130" stroke="#c03030" stroke-width="1.5"/>
+  <line x1="315" y1="130" x2="130" y2="130" stroke="#c03030" stroke-width="1.5"/>
+  <rect x="155" y="112" width="50" height="28" rx="4" fill="#ffe0e0" stroke="#c03030" stroke-width="1.5"/>
+  <text x="180" y="131" text-anchor="middle" fill="#a02020" font-size="14" font-weight="bold">A</text>
+  <line x1="130" y1="130" x2="130" y2="68" stroke="#c03030" stroke-width="1.5"/>
+  <line x1="130" y1="68" x2="184" y2="68" stroke="#c03030" stroke-width="1.5" marker-end="url(#a3)"/>
+  <text x="130" y="108" fill="#c03030" font-size="9" text-anchor="middle">terugkoppeling</text>
+</svg>
+<figcaption>Figuur 3.1 — Blokdiagram van een state-space model. De toestand x evolueert via de integrator, wordt teruggekoppeld via A, aangedreven via B·u, en uitgelezen via C.</figcaption>
+</figure>
+
+<p>De matrices hebben elk een specifieke fysische betekenis:</p>
+<table>
+  <tr><th>Matrix</th><th>Naam</th><th>Betekenis in dit systeem</th></tr>
+  <tr><td><strong>A</strong></td><td>Systeemmatrix</td><td>Hoe de waterstanden en interne dynamica zichzelf beïnvloeden van seconde tot seconde</td></tr>
+  <tr><td><strong>B</strong></td><td>Ingangsmatrix</td><td>Hoe een stuwbeweging de interne toestand verandert</td></tr>
+  <tr><td><strong>C</strong></td><td>Uitgangsmatrix</td><td>Welke toestanden de sensor meet — hier: de drie waterpeilen</td></tr>
+</table>
+
+<h2 id="h3-2">3.2 Het Cantoni-model voor open-kanaalstroming</h2>
+<p>
+Waterstroming door een open kanaal is in werkelijkheid <em>niet-lineair</em>: het debiet hangt af van de wortels van peilverschillen (via de Saint-Venant vergelijkingen). Direct gebruik hiervan in een Kalman filter of MPC is rekenkundig te duur voor real-time gebruik.
+</p>
+<p>
+<strong>Cantoni's aanpak</strong> lineariseert dit systeem rondom een werkpunt (de setpoints) en levert een lineair state-space model via LMI-optimalisatie (Linear Matrix Inequalities). Dat model is opgeslagen in <code>distributed_workspace.mat</code> als de variabele <code>comb_plant_cont</code>.
+</p>
+
+<div class="box green">
+<div class="box-title">Ons model: 12 toestanden, 3 ingangen, 3 uitgangen</div>
+<ul style="margin-bottom:0">
+  <li>\(\mathbf{x} \in \mathbb{R}^{12}\): interne toestanden van de drie bassins (4 per bassin)</li>
+  <li>\(\mathbf{u} \in \mathbb{R}^{3}\): servo-posities van gate 1, 2, 3 (waarden 0–255)</li>
+  <li>\(\mathbf{y} \in \mathbb{R}^{3}\): gemeten waterpeilen pool 1, 2, 3 [m]</li>
+  <li>\(\mathbf{A} \in \mathbb{R}^{12\times12}\), \(\mathbf{B} \in \mathbb{R}^{12\times3}\), \(\mathbf{C} \in \mathbb{R}^{3\times12}\)</li>
+</ul>
+</div>
+
+<h3>Waarom 12 toestanden voor 3 bassins?</h3>
+<p>
+Je zou denken: 3 bassins, dus 3 toestanden (één waterpeil per bassin). Maar water stroomt niet ogenblikkelijk door een stuw — er zit een vertraging in (transporttijd). Bovendien heeft de stuwservo zelf ook een dynamica. Het Cantoni-model beschrijft dit nauwkeurig met <strong>4 toestanden per bassin</strong>:
+</p>
+<table>
+  <tr><th>Toestand per bassin</th><th>Fysieke betekenis</th></tr>
+  <tr><td>Toestand 1</td><td>Waterstandsafwijking ten opzichte van het setpoint</td></tr>
+  <tr><td>Toestand 2 en 3</td><td>Padé-benadering van de transportvertraging (hoe lang water erover doet om door de stuw te stromen)</td></tr>
+  <tr><td>Toestand 4</td><td>Stuwdynamica — de servo bereikt zijn doelpositie niet ogenblikkelijk</td></tr>
+</table>
+<p>
+De 12 toestanden zijn niet allemaal direct interpreteerbaar als "peil van bassin X" — ze zijn abstracte variabelen die samen de dynamica beschrijven. Alleen de uitgang \(\mathbf{y} = \mathbf{C}\mathbf{x}\) geeft de werkelijke waterpeilen. De C-matrix selecteert de eerste toestand van elk bassin (de waterpeilafwijking) uit de volledige 12-vectortoestand.
+</p>
+
+<div class="analogy">
+  <div class="analogy-title">Analogie: de interne toestand van een auto</div>
+  Als je wil voorspellen hoe snel een auto rijdt, heb je niet alleen de huidige snelheid nodig — je hebt ook de motortoerental, de versnellingsbakpositie en het koppel nodig. Die interne grootheden zijn niet altijd direct zichtbaar, maar zijn wel nodig voor een goede voorspelling. Zo werkt het ook met de 12 toestanden van het watermodel.
+</div>
+
+<h2 id="h3-3">3.3 Discretisatie (ZOH)</h2>
+<p>
+Het Cantoni-model is <em>continu in de tijd</em>: het beschrijft de afgeleiden \(\dot{\mathbf{x}}\) op elk willekeurig tijdstip. Maar onze digitale regelaar werkt op vaste tijdstappen van \(T_s = 1\) seconde — elke seconde neemt hij een meting, rekent hij, en stuurt hij een nieuw commando. We moeten het model dus <strong>discretiseren</strong>: omzetten naar een versie die precies één tijdstap beschrijft.
+</p>
+
+<figure>
+<svg width="500" height="140" viewBox="0 0 500 140">
+  <line x1="30" y1="110" x2="230" y2="110" stroke="#999" stroke-width="1"/>
+  <line x1="30" y1="110" x2="30" y2="20" stroke="#999" stroke-width="1"/>
+  <text x="130" y="130" text-anchor="middle" fill="#555" font-size="10">t</text>
+  <text x="10" y="65" fill="#555" font-size="10">u</text>
+  <path d="M35,90 C60,60 80,50 100,55 S140,80 160,70 S190,40 220,45" stroke="#4a7cc7" stroke-width="2" fill="none"/>
+  <text x="130" y="18" text-anchor="middle" fill="#4a7cc7" font-size="10" font-weight="bold">Continue signaal</text>
+
+  <line x1="280" y1="110" x2="480" y2="110" stroke="#999" stroke-width="1"/>
+  <line x1="280" y1="110" x2="280" y2="20" stroke="#999" stroke-width="1"/>
+  <text x="380" y="130" text-anchor="middle" fill="#555" font-size="10">t</text>
+  <polyline points="285,90 305,90 305,65 325,65 325,55 345,55 345,70 365,70 365,60 385,60 385,45 405,45 405,50 425,50 425,48 445,48" stroke="#c03030" stroke-width="2" fill="none"/>
+  <line x1="305" y1="108" x2="305" y2="112" stroke="#666" stroke-width="1"/>
+  <line x1="325" y1="108" x2="325" y2="112" stroke="#666" stroke-width="1"/>
+  <line x1="345" y1="108" x2="345" y2="112" stroke="#666" stroke-width="1"/>
+  <line x1="365" y1="108" x2="365" y2="112" stroke="#666" stroke-width="1"/>
+  <text x="305" y="122" text-anchor="middle" fill="#555" font-size="8">k</text>
+  <text x="325" y="122" text-anchor="middle" fill="#555" font-size="8">k+1</text>
+  <text x="345" y="122" text-anchor="middle" fill="#555" font-size="8">k+2</text>
+  <text x="380" y="18" text-anchor="middle" fill="#c03030" font-size="10" font-weight="bold">ZOH: constant per tijdstap</text>
+  <text x="380" y="30" text-anchor="middle" fill="#666" font-size="9">Tₛ = 1 seconde</text>
+</svg>
+<figcaption>Figuur 3.2 — Zero-Order Hold (ZOH): het stuurcommando u blijft constant gedurende één tijdstap van T_s = 1 s.</figcaption>
+</figure>
+
+<p>
+De <strong>Zero-Order Hold</strong> (ZOH) methode gaat ervan uit dat het stuurcommando constant blijft tussen twee tijdstappen. Dit is logisch: de computer stuurt één commando, en dat commando blijft geldig totdat het volgende commando komt. De discrete matrices worden berekend als:
+</p>
+<div class="eq-block">
+$$\mathbf{A}_d = e^{\mathbf{A} T_s}, \qquad \mathbf{B}_d = \left(\int_0^{T_s} e^{\mathbf{A}\tau}\,d\tau\right)\mathbf{B}$$
+</div>
+<div class="formula-explain">
+  Dit zijn matrixexponentialen — vergelijkbaar met hoe je \(e^{at}\) kent, maar nu met een matrix. In MATLAB berekent <code>c2d(comb_plant_cont, 1, 'zoh')</code> dit automatisch. Je hoeft de formule niet met de hand uit te rekenen.
+</div>
+
+<p>Het discrete model luidt:</p>
+<div class="box">
+$$\mathbf{x}(k+1) = \mathbf{A}_d\,\mathbf{x}(k) + \mathbf{B}_d\,\mathbf{u}(k)$$
+$$\mathbf{y}(k) = \mathbf{C}\,\mathbf{x}(k)$$
+</div>
+<div class="formula-explain">
+  <strong>Lees dit als:</strong> de toestand op de volgende seconde (k+1) = hoe de toestand zichzelf ontwikkelt (\(A_d \cdot x(k)\)) + de bijdrage van het huidige stuurcommando (\(B_d \cdot u(k)\)).<br>
+  De meting \(y(k)\) is gewoon matrix C toegepast op de toestand — dezelfde C als in het continue model, want de meting zelf is geen tijdsintegraal.
+</div>
+
+<p>In MATLAB: <code>plant_disc = c2d(comb_plant_cont, 1, 'zoh')</code></p>
+<p>
+Dit is de basisvorm die zowel het Kalman filter als de MPC regelaar gebruiken. Beide werken op exact dezelfde discretisatie, zodat er geen inconsistenties ontstaan.
+</p>
+<div class="page-break"></div>
+
+<!-- ═══════════════ H4: KALMAN ═══════════════ -->
+<h1 id="h4">4 &nbsp; Het Kalman Filter</h1>
+
+<h2 id="h4-1">4.1 Het schatten van een toestand</h2>
+<p>
+Het state-space model bevat 12 interne toestanden \(\mathbf{x}\), maar we meten er slechts 3 (de drie waterpeilen). De overige 9 toestanden — de vertragingen en stuwdynamica — zijn niet direct observeerbaar met een sensor. Toch heeft de MPC alle 12 toestanden nodig om goede voorspellingen te maken.
+</p>
+<p>
+Bovendien zijn metingen altijd vervuild door ruis: een sensor meet nooit het exacte peil. En het model is ook niet perfect: er zijn ongemodelleerde effecten (kleine lekkages, temperatuurinvloeden, turbulentie).
+</p>
+<p>
+Het <strong>Kalman filter</strong> lost beide problemen op: het schat de volledige toestandsvector \(\hat{\mathbf{x}}\) op basis van de metingen én het model, en weegt de betrouwbaarheid van beide automatisch optimaal af.
+</p>
+
+<div class="analogy">
+  <div class="analogy-title">Analogie: navigeren met een kaart en een GPS</div>
+  Stel je rijdt door een tunnel. Je GPS verliest signaal. Je hebt nog wel een kaart en een snelheidsmeter. Daarmee kun je uitrekenen waar je ongeveer bent (het model). Zodra je de tunnel uitkomt en de GPS werkt weer, vergelijk je de berekende positie met de GPS-positie (de meting). Als je snelheidsmeter heel nauwkeurig is, vertrouw je de berekening meer. Als de GPS heel precies is, vertrouw je de GPS meer. Het Kalman filter doet precies deze afweging — elke seconde opnieuw.
+</div>
+
+<div class="box orange">
+<div class="box-title">Intuïtie: gewogen gemiddelde</div>
+<p style="margin:0">
+Stel: je weet dat pool 1 een waterpeil van 0,250 m zou moeten hebben (model), maar de sensor geeft 0,248 m aan (meting). Wat is de werkelijke stand? Het Kalman filter berekent een gewogen gemiddelde: als de sensor betrouwbaarder is dan het model, schuif je meer richting 0,248. Is het model betrouwbaarder, dan blijf je dichter bij 0,250. Het gewicht heet de <strong>Kalman gain</strong>.
+</p>
+</div>
+
+<figure>
+<svg width="400" height="280" viewBox="0 0 400 280">
+  <rect x="130" y="20" width="140" height="70" rx="8" fill="#e8f0fc" stroke="#4a7cc7" stroke-width="2"/>
+  <text x="200" y="45" text-anchor="middle" font-weight="bold" fill="#0d2b5e" font-size="12">VOORSPELLING</text>
+  <text x="200" y="62" text-anchor="middle" fill="#444" font-size="10">x̂⁻ = A·x̂ + B·u</text>
+  <text x="200" y="77" text-anchor="middle" fill="#444" font-size="10">P⁻ = A·P·A' + Q</text>
+
+  <rect x="130" y="180" width="140" height="70" rx="8" fill="#e8fcf0" stroke="#2a7a4a" stroke-width="2"/>
+  <text x="200" y="205" text-anchor="middle" font-weight="bold" fill="#1a5030" font-size="12">UPDATE</text>
+  <text x="200" y="222" text-anchor="middle" fill="#444" font-size="10">x̂ = x̂⁻ + K·ν</text>
+  <text x="200" y="237" text-anchor="middle" fill="#444" font-size="10">P = (I–KC)P⁻(I–KC)'</text>
+
+  <defs>
+    <marker id="a4" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+      <polygon points="0 0,7 2.5,0 5" fill="#0d2b5e"/>
+    </marker>
+    <marker id="a4g" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+      <polygon points="0 0,7 2.5,0 5" fill="#2a7a4a"/>
+    </marker>
+  </defs>
+  <line x1="200" y1="90" x2="200" y2="120" stroke="#0d2b5e" stroke-width="2" marker-end="url(#a4)"/>
+  <rect x="130" y="120" width="140" height="30" rx="4" fill="#fff8e0" stroke="#c07020" stroke-width="1.5"/>
+  <text x="200" y="130" text-anchor="middle" fill="#804010" font-size="9" font-weight="bold">INNOVATIE:  ν = y − C·x̂⁻</text>
+  <text x="200" y="143" text-anchor="middle" fill="#804010" font-size="9">"hoe ver zat voorspelling ernaast?"</text>
+  <line x1="200" y1="150" x2="200" y2="179" stroke="#2a7a4a" stroke-width="2" marker-end="url(#a4g)"/>
+
+  <line x1="130" y1="215" x2="50" y2="215" stroke="#c03030" stroke-width="1.5"/>
+  <line x1="50" y1="215" x2="50" y2="55" stroke="#c03030" stroke-width="1.5"/>
+  <line x1="50" y1="55" x2="129" y2="55" stroke="#c03030" stroke-width="1.5" marker-end="url(#a4)"/>
+  <text x="30" y="140" fill="#c03030" font-size="9" text-anchor="middle" transform="rotate(-90,30,140)">x̂(k) → volgende stap</text>
+
+  <line x1="350" y1="145" x2="271" y2="145" stroke="#c07020" stroke-width="2" marker-end="url(#a4)"/>
+  <text x="370" y="149" fill="#c07020" font-size="10" font-weight="bold">y(k)</text>
+  <text x="370" y="161" fill="#c07020" font-size="9">meting</text>
+
+  <line x1="50" y1="35" x2="129" y2="35" stroke="#1a4a8a" stroke-width="2" marker-end="url(#a4)"/>
+  <text x="10" y="39" fill="#1a4a8a" font-size="10" font-weight="bold">u(k)</text>
+
+  <text x="200" y="268" text-anchor="middle" fill="#888" font-size="9" font-style="italic">elke tijdstap T_s = 1 s</text>
+</svg>
+<figcaption>Figuur 4.1 — De Kalman filter cyclus: voorspellen, innovatie berekenen, toestand updaten, dan herhalen.</figcaption>
+</figure>
+
+<h2 id="h4-2">4.2 Stap 1: Voorspelling</h2>
+<p>
+Aan het begin van tijdstap \(k\) gebruiken we het model om de toestand te <em>voorspellen</em> op basis van de vorige schatting en het vorige stuurcommando:
+</p>
+<div class="eq-block">
+$$\hat{\mathbf{x}}^-(k) = \mathbf{A}_d\,\hat{\mathbf{x}}(k-1) + \mathbf{B}_d\,\mathbf{u}(k-1)$$
+</div>
+<div class="formula-explain">
+  <strong>Lees dit als:</strong> "Wat verwacht ik dat de toestand nu is?" = hoe de vorige toestand zich ontwikkeld heeft (\(A_d \cdot \hat{x}(k-1)\)) + wat het stuurcommando van de vorige stap heeft bijgedragen (\(B_d \cdot u(k-1)\)). Het min-teken in \(\hat{x}^-\) geeft aan dat dit de <em>voorspelling vóór de meting</em> is.
+</div>
+
+<p>
+Tegelijk werken we de <strong>foutcovariantiematrix</strong> \(\mathbf{P}\) bij. Dit is een maat voor <em>hoe onzeker</em> we zijn over onze schatting. Hoe meer stappen we vooruitrekenen zonder meting, hoe onzekerder we worden:
+</p>
+<div class="eq-block">
+$$\mathbf{P}^-(k) = \mathbf{A}_d\,\mathbf{P}(k-1)\,\mathbf{A}_d^\top + \mathbf{Q}$$
+</div>
+<div class="formula-explain">
+  <strong>Lees dit als:</strong> de nieuwe onzekerheid = hoe de vorige onzekerheid zich heeft voortgeplant via het model (\(A \cdot P \cdot A^\top\)) + extra onzekerheid door modelfouten (\(Q\)). Stel je voor: hoe verder je iets gooit, hoe minder nauwkeurig je de landingsplek kunt voorspellen. Elke tijdstap zonder meting vergroot de onzekerheid.
+</div>
+
+<p>In de code (<code>twin_kalman_update.m</code>):</p>
+<pre>x_prior = A * x_hat + B * u;
+P_prior = A * P * A' + Q_kal;</pre>
+
+<h2 id="h4-3">4.3 Stap 2: Innovatie</h2>
+<p>
+Nu komt de meting \(\mathbf{y}(k)\) binnen. We vergelijken die met wat ons model had voorspeld. Het verschil heet de <strong>innovatie</strong>:
+</p>
+<div class="eq-block">
+$$\boldsymbol{\nu}(k) = \mathbf{y}(k) - \mathbf{C}\,\hat{\mathbf{x}}^-(k)$$
+</div>
+<div class="formula-explain">
+  <strong>Lees dit als:</strong> innovatie = werkelijke meting − wat het model had verwacht. Als de innovatie nul is, klopt het model perfect met de meting. Als de innovatie groot is, heeft het model iets gemist — bijvoorbeeld een stoornis. De innovatie is daardoor ook een detectiesignaal voor afwijkingen.
+</div>
+
+<p>
+De innovatie is ook de grootheid die op het dashboard als "modelkwaliteit" wordt getoond. Een kleine innovatie (dicht bij nul) betekent: het model volgt de werkelijkheid goed. Een grote innovatie betekent: er is iets onverwachts aan de hand.
+</p>
+<pre>innov = y_meas - C * x_prior;</pre>
+
+<h2 id="h4-4">4.4 Stap 3: Kalman-versterking en update</h2>
+<p>
+De <strong>Kalman-gain</strong> \(\mathbf{K}\) bepaalt hoeveel gewicht we geven aan de meting versus de modelvoorspelling. Hij wordt berekend uit de onzekerheden:
+</p>
+<div class="eq-block">
+$$\mathbf{S} = \mathbf{C}\,\mathbf{P}^-\,\mathbf{C}^\top + \mathbf{R}$$
+$$\mathbf{K} = \mathbf{P}^-\,\mathbf{C}^\top\,\mathbf{S}^{-1}$$
+</div>
+<div class="formula-explain">
+  <strong>S</strong> is de totale onzekerheid in de meting: onzekerheid in de toestandsschatting (\(C \cdot P^- \cdot C^\top\)) plus meetsensorruis (\(R\)).<br>
+  <strong>K</strong> is de verhouding: hoeveel van de onzekerheid komt door het model, ten opzichte van de totale onzekerheid. Als het model erg onzeker is (groot \(P^-\)) maar de sensor betrouwbaar (kleine \(R\)), wordt K groot → veel gewicht aan de meting.
+</div>
+
+<ul>
+  <li>Als \(\mathbf{R}\) groot is (sensor onbetrouwbaar) → kleine \(\mathbf{K}\) → filter vertrouwt meer op het model</li>
+  <li>Als \(\mathbf{Q}\) groot is (model onbetrouwbaar) → grote \(\mathbf{K}\) → filter vertrouwt meer op de meting</li>
+</ul>
+
+<p>De schatting wordt bijgewerkt via:</p>
+<div class="eq-block">
+$$\hat{\mathbf{x}}(k) = \hat{\mathbf{x}}^-(k) + \mathbf{K}\,\boldsymbol{\nu}(k)$$
+</div>
+<div class="formula-explain">
+  <strong>Lees dit als:</strong> de nieuwe schatting = de modelvoorspelling + een correctie. De correctie is K maal de innovatie. Als K = 0: negeer de meting, blijf bij de voorspelling. Als K groot: trek sterk naar de meting toe.
+</div>
+
+<pre>S     = C * P_prior * C' + R_kal;
+K     = P_prior * C' / S;
+x_hat = x_prior + K * innov;</pre>
+
+<h2 id="h4-5">4.5 Ruis-covarianties Q en R</h2>
+<p>
+De twee tuning-parameters van het Kalman filter bepalen het gedrag volledig:
+</p>
+<table>
+  <tr><th>Parameter</th><th>Betekenis</th><th>Standaardwaarde</th><th>Effect van verhogen</th></tr>
+  <tr>
+    <td>\(\mathbf{Q}\) (12×12)</td>
+    <td>Procesruis: hoe erg wijkt de werkelijkheid af van het model?</td>
+    <td><code>1e-4 · I</code></td>
+    <td>Filter vertrouwt model minder → reageert sneller op metingen</td>
+  </tr>
+  <tr>
+    <td>\(\mathbf{R}\) (3×3)</td>
+    <td>Meetruis: hoe veel ruis zit er op de sensoren?</td>
+    <td><code>1e-3 · I</code></td>
+    <td>Filter vertrouwt sensor minder → volgt model meer, filtert ruis beter</td>
+  </tr>
+</table>
+
+<p>
+In de standaardinstelling is \(\mathbf{Q}\) een factor 10 kleiner dan \(\mathbf{R}\): we vertrouwen het model iets meer dan de sensor. Het Cantoni-model is via LMI geoptimaliseerd en is daarmee relatief nauwkeurig voor de operatiepunten (setpoints).
+</p>
+
+<div class="box orange">
+  <div class="box-title">Wat gaat er mis bij verkeerde Q en R?</div>
+  <ul style="margin-bottom:0">
+    <li><strong>Q te klein:</strong> het filter reageert te traag als de waterstand echt verandert door een stoornis. De MPC krijgt verouderde informatie en compenseert te laat.</li>
+    <li><strong>Q te groot:</strong> het filter volgt elke meetpiek mee alsof het een echte toestandsverandering is. De regelaar maakt onnodige correcties.</li>
+    <li><strong>R te klein:</strong> het filter vertrouwt de sensor te veel en filtert de ruis niet weg — de schatting is onnodig lawaaierig.</li>
+    <li><strong>R te groot:</strong> het filter negeert de metingen bijna volledig. Het model — dat nooit perfect is — drijft langzaam weg van de werkelijkheid.</li>
+  </ul>
+</div>
+
+<p>
+Voor nauwkeurigere waarden van Q en R kan het EM-algoritme gebruikt worden om deze te schatten uit echte meetdata. Zie het document <em>Ruis Covariantie Schatting</em> voor de gedetailleerde procedure.
+</p>
+
+<h2 id="h4-6">4.6 Joseph-vorm voor numerieke stabiliteit</h2>
+<p>
+De standaard update \(\mathbf{P} = (\mathbf{I} - \mathbf{K}\mathbf{C})\mathbf{P}^-\) is wiskundig correct, maar gevoelig voor afrondingsfouten bij computers. Na veel tijdstappen kan \(\mathbf{P}\) een beetje asymmetrisch worden of zelfs negatieve eigenwaarden krijgen — wat wiskundig onmogelijk is voor een covariantiematrix.
+</p>
+<p>
+De <strong>Joseph-vorm</strong> is algebraïsch equivalent maar numeriek robuuster:
+</p>
+<div class="eq-block">
+$$\mathbf{P}(k) = (\mathbf{I} - \mathbf{K}\mathbf{C})\,\mathbf{P}^-\,(\mathbf{I} - \mathbf{K}\mathbf{C})^\top + \mathbf{K}\,\mathbf{R}\,\mathbf{K}^\top$$
+</div>
+<div class="formula-explain">
+  Door de term \((I - KC)\) zowel links als rechts te vermenigvuldigen (en een correctieterm \(K R K^\top\) toe te voegen) blijft P gegarandeerd symmetrisch, ongeacht kleine afrondingsfouten. Dit is de aanbevolen implementatievorm voor praktische Kalman filters.
+</div>
+<pre>IKC = eye(size(P,1)) - K * C;
+P   = IKC * P_prior * IKC' + K * R_kal * K';</pre>
+<div class="page-break"></div>
+
+<!-- ═══════════════ H5: MPC ═══════════════ -->
+<h1 id="h5">5 &nbsp; Model Predictive Control (MPC)</h1>
+
+<h2 id="h5-1">5.1 Concept: vooruitkijken</h2>
+<p>
+Een klassieke PID-regelaar reageert op de <em>huidige</em> fout: het peil wijkt af van het setpoint, dus de stuw gaat open. Hij weet niet wat er over 5 seconden gaat gebeuren en kan daarom niet anticiperen.
+</p>
+<p>
+<strong>MPC</strong> doet dat wel: elke tijdstap kijkt de regelaar \(N\) stappen vooruit, simuleert wat er zou gebeuren bij verschillende stuurbewegingen, en kiest de beweging die de totale kosten over die horizon minimaliseert. Daarna past hij <em>alleen de eerste stap</em> toe. Op het volgende tijdstip herhaalt het proces met nieuwe informatie — dit heet de <em>receding horizon</em> strategie.
+</p>
+
+<div class="analogy">
+  <div class="analogy-title">Analogie: schaak versus dammen</div>
+  Een PID-regelaar speelt dammen: alleen de volgende zet. MPC speelt schaak: het denkt 10 zetten vooruit en kiest nu de zet die in de beste positie landt — ook al is die zet zelf niet optimaal voor de volgende stap. Bij waterregeling betekent dit: een kleine stuwbeweging nu kan later een grote afwijking voorkomen.
+</div>
+
+<figure>
+<svg width="540" height="190" viewBox="0 0 540 190">
+  <defs>
+    <marker id="a5" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+      <polygon points="0 0,7 2.5,0 5" fill="#0d2b5e"/>
+    </marker>
+  </defs>
+  <line x1="30" y1="100" x2="510" y2="100" stroke="#ccc" stroke-width="1" marker-end="url(#a5)"/>
+
+  <line x1="80"  y1="96" x2="80"  y2="104" stroke="#444" stroke-width="2"/>
+  <line x1="130" y1="96" x2="130" y2="104" stroke="#888" stroke-width="1"/>
+  <line x1="180" y1="96" x2="180" y2="104" stroke="#888" stroke-width="1"/>
+  <line x1="230" y1="96" x2="230" y2="104" stroke="#888" stroke-width="1"/>
+  <line x1="280" y1="96" x2="280" y2="104" stroke="#888" stroke-width="1"/>
+  <line x1="330" y1="96" x2="330" y2="104" stroke="#888" stroke-width="1"/>
+
+  <text x="80"  y="117" text-anchor="middle" fill="#0d2b5e" font-size="11" font-weight="bold">k</text>
+  <text x="130" y="117" text-anchor="middle" fill="#666" font-size="10">k+1</text>
+  <text x="180" y="117" text-anchor="middle" fill="#666" font-size="10">k+2</text>
+  <text x="280" y="117" text-anchor="middle" fill="#666" font-size="10">...</text>
+  <text x="330" y="117" text-anchor="middle" fill="#666" font-size="10">k+N</text>
+  <text x="500" y="104" fill="#666" font-size="10">t</text>
+
+  <line x1="80" y1="45" x2="510" y2="45" stroke="#2a7a4a" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="515" y="49" fill="#2a7a4a" font-size="9">y_ref</text>
+
+  <circle cx="80" cy="80" r="6" fill="#0d2b5e"/>
+  <text x="80" y="75" text-anchor="middle" fill="#0d2b5e" font-size="9">x̂(k)</text>
+
+  <circle cx="130" cy="72" r="4" fill="#4a7cc7" opacity="0.8"/>
+  <circle cx="180" cy="62" r="4" fill="#4a7cc7" opacity="0.8"/>
+  <circle cx="230" cy="54" r="4" fill="#4a7cc7" opacity="0.8"/>
+  <circle cx="280" cy="49" r="4" fill="#4a7cc7" opacity="0.8"/>
+  <circle cx="330" cy="45" r="4" fill="#4a7cc7" opacity="0.8"/>
+  <polyline points="80,80 130,72 180,62 230,54 280,49 330,45" stroke="#4a7cc7" stroke-width="1.5" fill="none" stroke-dasharray="4,2"/>
+
+  <line x1="80" y1="140" x2="330" y2="140" stroke="#c03030" stroke-width="1.5"/>
+  <line x1="80" y1="136" x2="80" y2="144" stroke="#c03030" stroke-width="1.5"/>
+  <line x1="330" y1="136" x2="330" y2="144" stroke="#c03030" stroke-width="1.5"/>
+  <text x="205" y="156" text-anchor="middle" fill="#c03030" font-size="10" font-weight="bold">Horizon N = 10 stappen</text>
+
+  <rect x="80" y="158" width="50" height="20" rx="3" fill="#ffd080" stroke="#c07020" stroke-width="1.5"/>
+  <text x="105" y="172" text-anchor="middle" fill="#804010" font-size="9" font-weight="bold">toepassen</text>
+  <line x1="105" y1="158" x2="105" y2="104" stroke="#c07020" stroke-width="1.5" stroke-dasharray="3,2"/>
+
+  <text x="280" y="180" text-anchor="middle" fill="#888" font-size="9" font-style="italic">Alleen u(k) wordt toegepast — daarna herbereken</text>
+</svg>
+<figcaption>Figuur 5.1 — Receding horizon MPC: op elk tijdstip k wordt een volledige horizon N=10 vooruitberekend, maar alleen de eerste stap uitgevoerd.</figcaption>
+</figure>
+
+<h2 id="h5-2">5.2 Voorspellingsmatrices</h2>
+<p>
+Om de MPC te formuleren, moeten we alle toekomstige uitgangen \(\mathbf{Y}\) uitschrijven als een lineaire functie van de huidige toestand \(\hat{\mathbf{x}}\) en de reeks toekomstige stuurcommando's \(\mathbf{U}\). Dit doen we door het model herhaaldelijk vooruit te simuleren:
+</p>
+<p>
+Eén stap vooruit: \(y(k+1) = C \cdot A_d \cdot \hat{x}(k) + C \cdot B_d \cdot u(k)\)<br>
+Twee stappen vooruit: \(y(k+2) = C \cdot A_d^2 \cdot \hat{x}(k) + C \cdot A_d \cdot B_d \cdot u(k) + C \cdot B_d \cdot u(k+1)\)<br>
+… enzovoort voor N stappen.
+</p>
+<p>
+Gestapeld in matrixvorm:
+</p>
+<div class="eq-block">
+$$\mathbf{Y} = \mathbf{S}_x\,\hat{\mathbf{x}} + \mathbf{S}_u\,\mathbf{U}$$
+</div>
+<div class="formula-explain">
+  <strong>Y</strong> = alle voorspelde uitgangen voor de komende N stappen (vector van lengte 3N).<br>
+  <strong>U</strong> = alle toekomstige stuurcommando's die we mogen kiezen (vector van lengte 3N).<br>
+  <strong>S_x</strong> = hoe de huidige toestand doorwerkt op elk toekomstig tijdstap.<br>
+  <strong>S_u</strong> = hoe elk toekomstig stuurcommando de uitgangen beïnvloedt. Dit is een onderste driehoeksmatrix: commando u(k) beïnvloedt y(k+1), y(k+2), ..., maar niet tijdstappen in het verleden.
+</div>
+<div class="eq-block">
+$$\mathbf{S}_x = \begin{bmatrix} \mathbf{C}\mathbf{A}_d \\ \mathbf{C}\mathbf{A}_d^2 \\ \vdots \\ \mathbf{C}\mathbf{A}_d^N \end{bmatrix}, \qquad
+\mathbf{S}_u = \begin{bmatrix} \mathbf{C}\mathbf{B}_d & 0 & \cdots & 0 \\ \mathbf{C}\mathbf{A}_d\mathbf{B}_d & \mathbf{C}\mathbf{B}_d & \cdots & 0 \\ \vdots & & \ddots & \vdots \\ \mathbf{C}\mathbf{A}_d^{N-1}\mathbf{B}_d & \cdots & \cdots & \mathbf{C}\mathbf{B}_d \end{bmatrix}$$
+</div>
+<p>
+Deze matrices worden eenmalig berekend vóór de hoofdlus (in <code>twin_mpc_solve.m</code>) en hergebruikt elke tijdstap, want A, B en C veranderen niet.
+</p>
+
+<h2 id="h5-3">5.3 Kostenfunctie en beperkingen</h2>
+<p>
+De MPC minimaliseert een <strong>kostenfunctie</strong> die twee doelen afweegt:
+</p>
+<ul>
+  <li><strong>Tracking:</strong> blijf dicht bij het setpoint</li>
+  <li><strong>Effort:</strong> stuur niet te hard (beperk stuwbewegingen)</li>
+</ul>
+<div class="eq-block">
+$$J(\mathbf{U}) = \sum_{i=1}^{N} \left[\,(\mathbf{y}(k+i) - \mathbf{y}_{\text{ref}})^\top \mathbf{Q}_{\text{mpc}}\,(\mathbf{y}(k+i) - \mathbf{y}_{\text{ref}}) + \mathbf{u}(k+i)^\top \mathbf{R}_{\text{mpc}}\,\mathbf{u}(k+i)\right]$$
+</div>
+<div class="formula-explain">
+  <strong>Eerste term</strong> (met Q_mpc): straf op afwijking van het setpoint. Hoe groter de afwijking, hoe hoger de kosten.<br>
+  <strong>Tweede term</strong> (met R_mpc): straf op de grootte van het stuurcommando. Hiermee voorkom je dat de regelaar overdreven grote stuwbewegingen maakt.<br>
+  Door Q_mpc groot en R_mpc klein te maken, geef je de regelaar toestemming om krachtig bij te sturen. Door R_mpc groter te maken, stuurt hij zachter maar accepteert hij meer afwijking.
+</div>
+
+<p>De gewichtsmatrices bepalen de prioriteit:</p>
+<table>
+  <tr><th>Parameter</th><th>Waarde</th><th>Betekenis</th></tr>
+  <tr><td>\(\mathbf{Q}_{\text{mpc}} = 10\,\mathbf{I}_3\)</td><td>10</td><td>Grote straf op afwijking van setpoint — tracking is belangrijk</td></tr>
+  <tr><td>\(\mathbf{R}_{\text{mpc}} = 0{,}1\,\mathbf{I}_3\)</td><td>0,1</td><td>Kleine straf op stuuractie — actief sturen is OK</td></tr>
+</table>
+
+<p>Naast de kostenfunctie zijn er <strong>beperkingen</strong> (constraints) die fysieke grenzen opleggen:</p>
+<ul>
+  <li><strong>Positiebegrenzing:</strong> \(0 \leq u_i \leq 255\) — de servo kan niet buiten zijn fysieke bereik gaan</li>
+  <li><strong>Snelheidsbegrenzing:</strong> \(|u_i(k) - u_i(k-1)| \leq 20\) — de stuw mag niet te snel bewegen (bescherming tegen mechanische slijtage)</li>
+</ul>
+
+<div class="analogy">
+  <div class="analogy-title">Analogie: cruise control met een maximumsnelheid</div>
+  Een cruise control wil de gewenste snelheid bereiken (tracking) maar mag niet harder dan de maximumsnelheid (beperking) en mag niet te abrupt gas geven (snelheidsbegrenzing). De kostenfunctie weegt comfort (zachte acceleratie) tegen snelheid van reactie. MPC doet hetzelfde voor waterpeilen en stuwen.
+</div>
+
+<h2 id="h5-4">5.4 Kwadratisch programma (QP)</h2>
+<p>
+Omdat de kostenfunctie kwadratisch is en alle beperkingen lineair, is dit een <strong>Kwadratisch Programma (QP)</strong>. Dit is een standaard optimalisatieprobleem waarvoor efficiënte oplossers bestaan — vergelijkbaar met hoe je een parabool minimaliseert, maar dan in veel dimensies tegelijk, met randvoorwaarden.
+</p>
+<p>
+Herschreven in standaard QP-vorm \(\min \frac{1}{2}\mathbf{U}^\top \mathbf{H}\,\mathbf{U} + \mathbf{f}^\top\mathbf{U}\):
+</p>
+<div class="eq-block">
+$$\mathbf{H} = 2\left(\mathbf{S}_u^\top \bar{\mathbf{Q}}\,\mathbf{S}_u + \bar{\mathbf{R}}\right)$$
+$$\mathbf{f} = 2\,\mathbf{S}_u^\top \bar{\mathbf{Q}}\left(\mathbf{S}_x\,\hat{\mathbf{x}} - \mathbf{Y}_{\text{ref}}\right)$$
+</div>
+<div class="formula-explain">
+  <strong>H</strong> is de Hessematrix — de "kromming" van de kostenfunctie in alle richtingen. Positief-definitief H garandeert dat er een uniek minimum bestaat.<br>
+  <strong>f</strong> is de lineaire term — afhankelijk van de huidige toestand \(\hat{x}\) en het setpoint. Dit verandert elke tijdstap, maar H is constant en hoeft maar één keer berekend te worden.<br>
+  \(\bar{Q}\) en \(\bar{R}\) zijn blokdiagonaalmatrices die Q_mpc en R_mpc over de hele horizon N herhalen.
+</div>
+<p>
+MATLAB's <code>quadprog</code> lost dit op. Alleen de eerste \(n_u = 3\) elementen van de oplossing \(\mathbf{U}^*\) worden gebruikt: <code>u_mpc = U_opt(1:3)</code> — de rest is een toekomstplan dat bij de volgende tijdstap toch opnieuw wordt berekend.
+</p>
+<div class="page-break"></div>
+
+<!-- ═══════════════ H6: SOFTWARE ═══════════════ -->
+<h1 id="h6">6 &nbsp; Software-architectuur</h1>
+<p>
+Het project bestaat uit twee mappen: <code>WIS-twin/</code> (de digital twin) en <code>WIS-sim/</code> (het simulatiemodel inclusief het Cantoni-model en de Firefly communicatieklasse).
+</p>
+
+<figure>
+<svg width="540" height="340" viewBox="0 0 540 340">
+  <defs>
+    <marker id="a6" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+      <polygon points="0 0,7 2.5,0 5" fill="#666"/>
+    </marker>
+  </defs>
+
+  <rect x="10" y="10" width="240" height="310" rx="6" fill="#f0f5ff" stroke="#4a7cc7" stroke-width="2"/>
+  <text x="130" y="32" text-anchor="middle" fill="#0d2b5e" font-weight="bold" font-size="12">📁 WIS-twin/</text>
+
+  <rect x="25" y="42" width="210" height="22" rx="3" fill="#dce8fc" stroke="#4a7cc7" stroke-width="1"/>
+  <text x="130" y="57" text-anchor="middle" fill="#0d2b5e" font-size="10">twin_config.m — instellingen</text>
+
+  <rect x="25" y="70" width="210" height="22" rx="3" fill="#dce8fc" stroke="#4a7cc7" stroke-width="1"/>
+  <text x="130" y="85" text-anchor="middle" fill="#0d2b5e" font-size="10">twin_kalman_update.m — Kalman</text>
+
+  <rect x="25" y="98" width="210" height="22" rx="3" fill="#dce8fc" stroke="#4a7cc7" stroke-width="1"/>
+  <text x="130" y="113" text-anchor="middle" fill="#0d2b5e" font-size="10">twin_mpc_solve.m — MPC + QP</text>
+
+  <rect x="25" y="126" width="210" height="22" rx="3" fill="#dce8fc" stroke="#4a7cc7" stroke-width="1"/>
+  <text x="130" y="141" text-anchor="middle" fill="#0d2b5e" font-size="10">twin_log_write.m — CSV logging</text>
+
+  <rect x="25" y="154" width="210" height="22" rx="3" fill="#dce8fc" stroke="#4a7cc7" stroke-width="1"/>
+  <text x="130" y="169" text-anchor="middle" fill="#0d2b5e" font-size="10">twin_plot_init/update.m — live plots</text>
+
+  <rect x="25" y="182" width="210" height="22" rx="3" fill="#c8daf8" stroke="#1a4a8a" stroke-width="2"/>
+  <text x="130" y="197" text-anchor="middle" fill="#0d2b5e" font-size="10" font-weight="bold">digital_twin.m — ★ HOOFDPROGRAMMA</text>
+
+  <rect x="25" y="210" width="210" height="22" rx="3" fill="#dce8fc" stroke="#4a7cc7" stroke-width="1"/>
+  <text x="130" y="225" text-anchor="middle" fill="#0d2b5e" font-size="10">twin_update_hardware.m — HW modus</text>
+
+  <rect x="25" y="238" width="210" height="22" rx="3" fill="#e8fcf0" stroke="#2a7a4a" stroke-width="1"/>
+  <text x="130" y="253" text-anchor="middle" fill="#1a5030" font-size="10">twin_dashboard.html — web UI</text>
+
+  <rect x="25" y="266" width="210" height="22" rx="3" fill="#fff8e0" stroke="#c07020" stroke-width="1"/>
+  <text x="130" y="281" text-anchor="middle" fill="#804010" font-size="10">data/twin_log.csv — log data</text>
+
+  <rect x="25" y="294" width="210" height="22" rx="3" fill="#f5f5f5" stroke="#999" stroke-width="1"/>
+  <text x="130" y="309" text-anchor="middle" fill="#555" font-size="10">STARTEN.m — opstartcommando's</text>
+
+  <rect x="290" y="10" width="240" height="180" rx="6" fill="#fff8f0" stroke="#c07020" stroke-width="2"/>
+  <text x="410" y="32" text-anchor="middle" fill="#804010" font-weight="bold" font-size="12">📁 WIS-sim/</text>
+
+  <rect x="305" y="42" width="210" height="22" rx="3" fill="#ffe8cc" stroke="#c07020" stroke-width="1"/>
+  <text x="410" y="57" text-anchor="middle" fill="#804010" font-size="10">cantoni_LMI.m — plant model</text>
+
+  <rect x="305" y="70" width="210" height="22" rx="3" fill="#ffe8cc" stroke="#c07020" stroke-width="1"/>
+  <text x="410" y="85" text-anchor="middle" fill="#804010" font-size="10">distributed_workspace.mat — matrices</text>
+
+  <rect x="305" y="98" width="210" height="22" rx="3" fill="#ffe8cc" stroke="#c07020" stroke-width="1"/>
+  <text x="410" y="113" text-anchor="middle" fill="#804010" font-size="10">FireflyCommunicationPSTC.m</text>
+
+  <line x1="235" y1="85" x2="303" y2="85" stroke="#666" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#a6)"/>
+  <text x="270" y="78" text-anchor="middle" fill="#666" font-size="8">laadt .mat</text>
+
+  <line x1="305" y1="113" x2="235" y2="220" stroke="#c07020" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#a6)"/>
+  <text x="255" y="160" fill="#c07020" font-size="8" text-anchor="middle">roept aan</text>
+</svg>
+<figcaption>Figuur 6.1 — Bestandsstructuur. WIS-twin bevat alle twin-code; WIS-sim het plantmodel en de hardware-communicatieklasse.</figcaption>
+</figure>
+
+<table>
+  <tr><th>Bestand</th><th>Beschrijving</th></tr>
+  <tr><td><code>twin_config.m</code></td><td>Alle instelbare parameters: Q/R, MPC-horizon, setpoints, logging-map. Verander hier de instellingen, niet in de andere bestanden.</td></tr>
+  <tr><td><code>twin_kalman_update.m</code></td><td>Één predict+update stap van het Kalman filter; geeft x̂, P en innovatie terug</td></tr>
+  <tr><td><code>twin_mpc_solve.m</code></td><td>Bouwt voorspellingsmatrices, formuleert QP, roept <code>quadprog</code> aan</td></tr>
+  <tr><td><code>twin_log_write.m</code></td><td>Schrijft één rij (14 kolommen) naar de CSV-logfile voor het dashboard</td></tr>
+  <tr><td><code>twin_plot_init.m</code></td><td>Maakt de 5-panelen MATLAB-figuur aan (roep éénmalig aan vóór de lus)</td></tr>
+  <tr><td><code>twin_plot_update.m</code></td><td>Werkt alle plot-series bij via <code>set(...,'XData',...,'YData',...)</code> — efficiënter dan opnieuw plotten</td></tr>
+  <tr><td><code>digital_twin.m</code></td><td><strong>Hoofdprogramma</strong>: laadt matrices, initialiseert, runt de hoofdlus</td></tr>
+  <tr><td><code>twin_update_hardware.m</code></td><td>Hardware-modus entry point; persistent function zodat toestand bewaard blijft tussen callbacks</td></tr>
+  <tr><td><code>twin_dashboard.html</code></td><td>Web-dashboard; polling <code>data/twin_log.csv</code> elke 2 s via Chart.js</td></tr>
+  <tr><td><code>STARTEN.m</code></td><td>Snelkoppelingen voor opstarten van twin en dashboard</td></tr>
+</table>
+<div class="page-break"></div>
+
+<!-- ═══════════════ H7: MAIN LOOP ═══════════════ -->
+<h1 id="h7">7 &nbsp; De hoofdlus stap voor stap</h1>
+<p>
+Het bestand <code>digital_twin.m</code> runt een lus van <code>MAX_STEPS = 60</code> iteraties. Elke iteratie is één tijdstap van 1 seconde. Hieronder staan alle stappen in volgorde, met uitleg wat er precies gebeurt.
+</p>
+
+<figure>
+<svg width="340" height="620" viewBox="0 0 340 620">
+  <defs>
+    <marker id="a7" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+      <polygon points="0 0,7 2.5,0 5" fill="#0d2b5e"/>
+    </marker>
+  </defs>
+
+  <ellipse cx="170" cy="25" rx="80" ry="18" fill="#0d2b5e" stroke="#0d2b5e"/>
+  <text x="170" y="30" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">START digital_twin.m</text>
+  <line x1="170" y1="43" x2="170" y2="62" stroke="#0d2b5e" stroke-width="2" marker-end="url(#a7)"/>
+
+  <rect x="60" y="62" width="220" height="40" rx="6" fill="#e8f0fc" stroke="#4a7cc7" stroke-width="2"/>
+  <text x="170" y="79" text-anchor="middle" fill="#0d2b5e" font-size="10" font-weight="bold">Initialisatie</text>
+  <text x="170" y="94" text-anchor="middle" fill="#444" font-size="9">Laad matrices A,B,C · x̂=0 · P=I · u=0</text>
+  <line x1="170" y1="102" x2="170" y2="122" stroke="#0d2b5e" stroke-width="2" marker-end="url(#a7)"/>
+
+  <rect x="60" y="122" width="220" height="26" rx="4" fill="#fff8e0" stroke="#c07020" stroke-width="2"/>
+  <text x="170" y="139" text-anchor="middle" fill="#804010" font-size="10" font-weight="bold">for epoch = 1 : MAX_STEPS</text>
+  <line x1="170" y1="148" x2="170" y2="166" stroke="#0d2b5e" stroke-width="2" marker-end="url(#a7)"/>
+
+  <rect x="60" y="166" width="220" height="42" rx="6" fill="#e8f0fc" stroke="#4a7cc7" stroke-width="1.5"/>
+  <text x="170" y="182" text-anchor="middle" fill="#0d2b5e" font-size="10" font-weight="bold">① Meting ophalen</text>
+  <text x="170" y="197" text-anchor="middle" fill="#444" font-size="9">Simulator: x = A·x + B·u + d</text>
+  <text x="170" y="208" text-anchor="middle" fill="#444" font-size="8.5">y_meas = C·x + y_ref</text>
+  <line x1="170" y1="208" x2="170" y2="226" stroke="#0d2b5e" stroke-width="2" marker-end="url(#a7)"/>
+
+  <rect x="60" y="226" width="220" height="42" rx="6" fill="#e8f0fc" stroke="#4a7cc7" stroke-width="1.5"/>
+  <text x="170" y="242" text-anchor="middle" fill="#0d2b5e" font-size="10" font-weight="bold">② Kalman filter update</text>
+  <text x="170" y="257" text-anchor="middle" fill="#444" font-size="9">twin_kalman_update(A,B,C,...)</text>
+  <text x="170" y="268" text-anchor="middle" fill="#444" font-size="8.5">→ x̂, P, innovatie ν</text>
+  <line x1="170" y1="268" x2="170" y2="286" stroke="#0d2b5e" stroke-width="2" marker-end="url(#a7)"/>
+
+  <rect x="60" y="286" width="220" height="42" rx="6" fill="#e8f0fc" stroke="#4a7cc7" stroke-width="1.5"/>
+  <text x="170" y="302" text-anchor="middle" fill="#0d2b5e" font-size="10" font-weight="bold">③ MPC berekening</text>
+  <text x="170" y="317" text-anchor="middle" fill="#444" font-size="9">twin_mpc_solve(A,B,C,x̂,...)</text>
+  <text x="170" y="328" text-anchor="middle" fill="#444" font-size="8.5">→ u_mpc (3 servo-waarden)</text>
+  <line x1="170" y1="328" x2="170" y2="346" stroke="#0d2b5e" stroke-width="2" marker-end="url(#a7)"/>
+
+  <rect x="60" y="346" width="220" height="42" rx="6" fill="#e8f0fc" stroke="#4a7cc7" stroke-width="1.5"/>
+  <text x="170" y="362" text-anchor="middle" fill="#0d2b5e" font-size="10" font-weight="bold">④ MPC-traject berekenen</text>
+  <text x="170" y="377" text-anchor="middle" fill="#444" font-size="9">N stappen simuleren met u_mpc</text>
+  <text x="170" y="388" text-anchor="middle" fill="#444" font-size="8.5">→ mpc_traj (voor plot)</text>
+  <line x1="170" y1="388" x2="170" y2="406" stroke="#0d2b5e" stroke-width="2" marker-end="url(#a7)"/>
+
+  <rect x="60" y="406" width="220" height="32" rx="6" fill="#e8f0fc" stroke="#4a7cc7" stroke-width="1.5"/>
+  <text x="170" y="422" text-anchor="middle" fill="#0d2b5e" font-size="10" font-weight="bold">⑤ Logging</text>
+  <text x="170" y="435" text-anchor="middle" fill="#444" font-size="9">twin_log_write → data/twin_log.csv</text>
+  <line x1="170" y1="438" x2="170" y2="456" stroke="#0d2b5e" stroke-width="2" marker-end="url(#a7)"/>
+
+  <rect x="60" y="456" width="220" height="32" rx="6" fill="#e8f0fc" stroke="#4a7cc7" stroke-width="1.5"/>
+  <text x="170" y="472" text-anchor="middle" fill="#0d2b5e" font-size="10" font-weight="bold">⑥ Plots en wachten</text>
+  <text x="170" y="484" text-anchor="middle" fill="#444" font-size="9">twin_plot_update · pause(H_LOOP)</text>
+  <line x1="170" y1="488" x2="170" y2="506" stroke="#0d2b5e" stroke-width="2" marker-end="url(#a7)"/>
+
+  <rect x="60" y="506" width="220" height="24" rx="4" fill="#fff8e0" stroke="#c07020" stroke-width="1.5"/>
+  <text x="170" y="522" text-anchor="middle" fill="#804010" font-size="10">epoch &lt; MAX_STEPS? → terug naar ①</text>
+  <line x1="60" y1="518" x2="30" y2="518" stroke="#c07020" stroke-width="1.5"/>
+  <line x1="30" y1="518" x2="30" y2="175" stroke="#c07020" stroke-width="1.5"/>
+  <line x1="30" y1="175" x2="59" y2="175" stroke="#c07020" stroke-width="1.5" marker-end="url(#a7)"/>
+
+  <line x1="170" y1="530" x2="170" y2="548" stroke="#0d2b5e" stroke-width="2" marker-end="url(#a7)"/>
+  <ellipse cx="170" cy="565" rx="80" ry="18" fill="#2a7a4a" stroke="#2a7a4a"/>
+  <text x="170" y="570" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">KLAAR — log opgeslagen</text>
+</svg>
+<figcaption>Figuur 7.1 — Flowchart van de main loop in <code>digital_twin.m</code>.</figcaption>
+</figure>
+
+<h3>Stap ① — Meting ophalen</h3>
+<p>
+In <strong>simulator-modus</strong> wordt de "fysieke installatie" gesimuleerd door het model zelf: de toestand x wordt één stap vooruitgezet met het plantmodel, en er wordt ruis toegevoegd. De "meting" is dan \(y = C \cdot x + y_{\text{ref}}\) (de werkelijke waterstand in meters, niet de afwijking).
+</p>
+<p>
+In <strong>hardware-modus</strong> levert de Firefly de meting rechtstreeks aan via de seriële verbinding.
+</p>
+
+<h3>Stap ② — Kalman filter update</h3>
+<p>
+<code>twin_kalman_update</code> ontvangt de meting en het vorige stuurcommando en voert één volledige predict+update cyclus uit (zie Hoofdstuk 4). Het geeft terug: de nieuwe toestandsschatting \(\hat{x}\), de bijgewerkte foutcovariantie \(P\), en de innovatie \(\nu\).
+</p>
+<p>
+Let op: de meting wordt intern omgezet naar een afwijking van het setpoint vóór het filter: <code>y_dev = y_meas - y_ref</code>. Het model werkt in afwijkingen, niet in absolute waarden.
+</p>
+
+<h3>Stap ③ — MPC berekening</h3>
+<p>
+<code>twin_mpc_solve</code> ontvangt de Kalman-schatting \(\hat{x}\) en berekent de optimale stuwposities voor de volgende tijdstap via het QP-probleem (zie Hoofdstuk 5). De output is een vector van 3 servo-waarden (0–255).
+</p>
+
+<h3>Stap ④ — MPC-traject berekenen</h3>
+<p>
+Puur voor visualisatie: het verwachte toekomstige traject van de waterpeilen wordt N stappen vooruitgesimuleerd met het zojuist gevonden stuurcommando. Dit traject verschijnt als stippellijn in de plotvensters.
+</p>
+
+<h3>Stap ⑤ — Logging</h3>
+<p>
+<code>twin_log_write</code> schrijft één rij toe aan <code>data/twin_log.csv</code>. Deze CSV bevat per tijdstap: epoch, tijd, drie waterpeilen, drie Kalman-schattingen, drie innovaties en drie stuurcommando's. Het dashboard leest dit bestand elke 2 seconden opnieuw in.
+</p>
+
+<h3>Stap ⑥ — Plots en wachten</h3>
+<p>
+De 5 MATLAB-plotvensters worden bijgewerkt. Daarna wacht de lus <code>pause(H_LOOP)</code> seconden. Met <code>H_LOOP = 0</code> draait de simulatie zo snel mogelijk (geen wachttijd); met <code>H_LOOP = 1</code> draait hij real-time op 1 Hz.
+</p>
+
+<h3>Stoornis in de simulator</h3>
+<p>
+Vanaf epoch 20 wordt een kunstmatige stoornis ingespoten op pool 1: <code>d(1) = -0.015</code> m. Dit simuleert een onverwachte uitstroom (bijv. een kleine lekkage van 1,5 cm). De digital twin detecteert dit doordat de innovatie opeens groot wordt — het model kan de meting niet meer verklaren. De MPC compenseert door stuw 1 aan te passen.
+</p>
+
+<h3>Hardware-modus</h3>
+<p>
+In hardware-modus wordt niet <code>digital_twin.m</code> direct aangeroepen, maar <code>twin_update_hardware.m</code>. Dit is een <em>persistent function</em>: variabelen als \(\hat{x}\), \(P\) en de logfile-handle blijven bewaard tussen callback-aanroepen — vergelijkbaar met een klasse-instantie in object-georiënteerd programmeren. De Firefly stuurt bij elke meting een bericht; de callback roept dan <code>twin_update_hardware(y_meas, u_prev, epoch)</code> aan.
+</p>
+<div class="page-break"></div>
+
+<!-- ═══════════════ H8: DASHBOARD ═══════════════ -->
+<h1 id="h8">8 &nbsp; Het web-dashboard</h1>
+<p>
+Het dashboard (<code>twin_dashboard.html</code>) toont alle relevante grootheden in real-time via een gewone webbrowser. Het werkt volledig zonder speciale software: een Python HTTP-server serveert het HTML-bestand en de CSV-data. Het dashboard leest elke 2 seconden <code>data/twin_log.csv</code> opnieuw in en werkt alle grafieken bij.
+</p>
+
+<figure>
+<svg width="540" height="300" viewBox="0 0 540 300">
+  <rect x="10" y="10" width="250" height="130" rx="6" fill="#f0f5ff" stroke="#4a7cc7" stroke-width="1.5"/>
+  <text x="135" y="28" text-anchor="middle" fill="#0d2b5e" font-weight="bold" font-size="11">Waterpeilen [m]</text>
+  <text x="135" y="41" text-anchor="middle" fill="#666" font-size="9">Meting (doorgetrokken) vs. Kalman voorspelling (gestippeld)</text>
+  <polyline points="20,115 50,110 80,100 110,88 140,82 180,78 220,76 250,76" stroke="#4a7cc7" stroke-width="2" fill="none"/>
+  <polyline points="20,118 50,112 80,103 110,91 140,85 180,80 220,77 250,77" stroke="#4a7cc7" stroke-width="1.5" fill="none" stroke-dasharray="5,3"/>
+  <line x1="20" y1="77" x2="250" y2="77" stroke="#4a7cc7" stroke-width="1" stroke-dasharray="2,4" opacity="0.5"/>
+  <text x="14" y="80" fill="#4a7cc7" font-size="8">y_ref</text>
+
+  <rect x="280" y="10" width="250" height="130" rx="6" fill="#fff8f0" stroke="#c07020" stroke-width="1.5"/>
+  <text x="405" y="28" text-anchor="middle" fill="#804010" font-weight="bold" font-size="11">Innovatie [m]</text>
+  <text x="405" y="41" text-anchor="middle" fill="#666" font-size="9">ν = meting − Kalman-voorspelling</text>
+  <polyline points="290,75 310,74 330,76 350,73 370,77 390,74 420,72 440,80 460,65 490,90 520,110" stroke="#f85149" stroke-width="2" fill="none"/>
+  <line x1="290" y1="75" x2="530" y2="75" stroke="#888" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="291" y="72" fill="#888" font-size="8">0</text>
+  <text x="291" y="107" fill="#f85149" font-size="8" font-weight="bold">→ stoornis!</text>
+  <line x1="490" y1="75" x2="490" y2="15" stroke="#f85149" stroke-width="1" stroke-dasharray="2,3" opacity="0.6"/>
+  <text x="494" y="25" fill="#f85149" font-size="8">drempel</text>
+  <text x="494" y="35" fill="#f85149" font-size="8">±0,02m</text>
+
+  <rect x="10" y="155" width="250" height="130" rx="6" fill="#f0fff4" stroke="#2a7a4a" stroke-width="1.5"/>
+  <text x="135" y="173" text-anchor="middle" fill="#1a5030" font-weight="bold" font-size="11">MPC stuurcommando [0–255]</text>
+  <text x="135" y="186" text-anchor="middle" fill="#666" font-size="9">Servo-posities gate 1, 2, 3</text>
+  <polyline points="20,250 50,230 80,215 110,210 140,200 180,198 220,195 250,194" stroke="#3fb950" stroke-width="2" fill="none"/>
+  <polyline points="20,255 50,240 80,225 110,218 140,208 180,205 220,202 250,200" stroke="#f85149" stroke-width="2" fill="none"/>
+  <polyline points="20,260 50,248 80,234 110,226 140,215 180,210 220,208 250,205" stroke="#58a6ff" stroke-width="2" fill="none"/>
+
+  <rect x="280" y="155" width="250" height="130" rx="6" fill="#f5f5f5" stroke="#888" stroke-width="1.5"/>
+  <text x="405" y="173" text-anchor="middle" fill="#333" font-weight="bold" font-size="11">Huidige waarden</text>
+  <text x="295" y="193" fill="#555" font-size="10">Pool 1 peil:</text>
+  <text x="500" y="193" text-anchor="end" fill="#4a7cc7" font-size="12" font-weight="bold">0,2498 m</text>
+  <text x="295" y="213" fill="#555" font-size="10">Pool 2 peil:</text>
+  <text x="500" y="213" text-anchor="end" fill="#f85149" font-size="12" font-weight="bold">0,2005 m</text>
+  <text x="295" y="233" fill="#555" font-size="10">Pool 3 peil:</text>
+  <text x="500" y="233" text-anchor="end" fill="#3fb950" font-size="12" font-weight="bold">0,1501 m</text>
+  <line x1="290" y1="243" x2="520" y2="243" stroke="#ddd" stroke-width="1"/>
+  <text x="295" y="258" fill="#555" font-size="10">Max innovatie:</text>
+  <text x="500" y="258" text-anchor="end" fill="#2a7a4a" font-size="11">0,00012 m ✓</text>
+  <text x="295" y="274" fill="#555" font-size="10">Epoch:</text>
+  <text x="500" y="274" text-anchor="end" fill="#333" font-size="11">42</text>
+</svg>
+<figcaption>Figuur 8.1 — Schematisch overzicht van de vier panelen in het dashboard (vereenvoudigd).</figcaption>
+</figure>
+
+<table>
+  <tr><th>Paneel</th><th>Wat zie je</th><th>Hoe te interpreteren</th></tr>
+  <tr>
+    <td>Waterpeilen</td>
+    <td>Doorgetrokken lijn = meting, gestippeld = Kalman-schatting</td>
+    <td>De lijnen horen dicht bij elkaar te liggen en dicht bij de setpoint-lijn (y_ref). Als de gestippelde lijn ver afwijkt van de doorgetrokken, klopt het model niet goed.</td>
+  </tr>
+  <tr>
+    <td>Innovatie</td>
+    <td>Afwijking per pool in meters</td>
+    <td>Dicht bij 0 = het model volgt de werkelijkheid goed. Groot = stoornis of modelafwijking. Bij &gt; 0,02 m verschijnt een rood alarm.</td>
+  </tr>
+  <tr>
+    <td>MPC stuurcommando</td>
+    <td>Servo-positie 0–255 per gate</td>
+    <td>Hoe ver heeft de MPC de stuwen opengezet? Schaal: 0 = volledig gesloten, 255 = volledig open. Je ziet hoe de regelaar reageert op afwijkingen.</td>
+  </tr>
+  <tr>
+    <td>Huidige waarden</td>
+    <td>Numerieke snapshot van de laatste tijdstap</td>
+    <td>Snelle statuscheck: peil t.o.v. setpoint, innovatie, epoch-teller.</td>
+  </tr>
+</table>
+
+<h3>Alarm</h3>
+<p>
+Als de maximale innovatie groter is dan 0,02 m, verschijnt er een rood alarm bovenaan het dashboard. Dit kan betekenen:
+</p>
+<ul>
+  <li>Het Cantoni-model is te ver van het werkpunt afgeweken (bijv. bij extreme waterstanden)</li>
+  <li>Er treedt een stoornis op die het model niet kent (lekkage, extra inflow van buiten)</li>
+  <li>Een sensor geeft een afwijkende waarde (sensor foutregel of kalibratiefout)</li>
+</ul>
+<div class="page-break"></div>
+
+<!-- ═══════════════ H9: OPSTARTEN ═══════════════ -->
+<h1 id="h9">9 &nbsp; Opstarten</h1>
+
+<h2>9.1 Vereisten</h2>
+<ul>
+  <li>MATLAB R2020b of nieuwer (met Optimization Toolbox voor <code>quadprog</code>)</li>
+  <li>Python 3 (voor de HTTP-server van het dashboard — standaard aanwezig op de meeste systemen)</li>
+  <li>Een webbrowser (Chrome, Edge, Firefox)</li>
+  <li>Het bestand <code>distributed_workspace.mat</code> aanwezig in <code>WIS-sim/simulation/</code></li>
+</ul>
+
+<div class="box orange">
+  <div class="box-title">Controleer eerst of distributed_workspace.mat aanwezig is</div>
+  Zonder dit bestand kan het model niet geladen worden en geeft MATLAB een foutmelding bij het opstarten. Navigeer in MATLAB naar <code>WIS-sim/simulation/</code> en controleer of het bestand er staat. Als het ontbreekt, draai dan eerst <code>cantoni_LMI.m</code> om het te genereren.
+</div>
+
+<h2>9.2 Simulatie starten (geen hardware nodig)</h2>
+<ol>
+  <li>Open MATLAB</li>
+  <li>Navigeer naar de map <code>WIS-twin/</code> (via de Current Folder browser of het Command Window)</li>
+  <li>Voer uit in het Command Window:
+    <pre>cd(fileparts(which('digital_twin')))
+digital_twin</pre>
+  </li>
+  <li>MATLAB opent 5 live-plotvensters en schrijft elke stap naar <code>data/twin_log.csv</code></li>
+  <li>De simulatie draait 60 stappen (≈ 60 seconden gesimuleerde tijd); bij epoch 20 treedt een stoornis op in pool 1</li>
+</ol>
+
+<h2>9.3 Dashboard starten</h2>
+<ol>
+  <li>Open een terminal (PowerShell of Command Prompt)</li>
+  <li>Navigeer naar de WIS-twin map:
+    <pre>cd "C:\Users\mauri\Downloads\BEP\Digital Twin\WIS-twin"</pre>
+  </li>
+  <li>Start de HTTP-server:
+    <pre>python -m http.server 8080</pre>
+  </li>
+  <li>Open in de browser: <code>http://localhost:8080/twin_dashboard.html</code></li>
+  <li>Het dashboard ververst automatisch elke 2 seconden — je hoeft niets handmatig te doen</li>
+</ol>
+
+<div class="box">
+  <div class="box-title">Tip: start simulatie en dashboard tegelijk</div>
+  De simulatie en de HTTP-server kunnen tegelijk draaien: start de Python server in een terminal, start daarna <code>digital_twin</code> in MATLAB, en open het dashboard in de browser. Je ziet dan de grafieken in real-time groeien terwijl de simulatie loopt.
+</div>
+
+<h2>9.4 Parameters aanpassen</h2>
+<p>
+Alle instelbare parameters staan in <code>twin_config.m</code>. Verander alleen hier — niet in de andere bestanden. De belangrijkste parameters:
+</p>
+<table>
+  <tr><th>Parameter</th><th>Standaard</th><th>Betekenis en effect van verhogen</th></tr>
+  <tr><td><code>N</code></td><td>10</td><td>MPC-horizon: het aantal stappen dat de regelaar vooruitkijkt. Langer = betere trajectplanning, maar trager per tijdstap.</td></tr>
+  <tr><td><code>Q_mpc</code></td><td>10</td><td>Hoe zwaar weegt afwijking van setpoint? Groter = regelaar stuurt harder bij.</td></tr>
+  <tr><td><code>R_mpc</code></td><td>0,1</td><td>Hoe zwaar weegt stuuractie? Groter = zachter sturen, meer afwijking toegestaan.</td></tr>
+  <tr><td><code>Q_kal_scale</code></td><td>1e-4</td><td>Procesruis Kalman filter. Groter = model als minder betrouwbaar beschouwd → meer gewicht aan meting.</td></tr>
+  <tr><td><code>R_kal_scale</code></td><td>1e-3</td><td>Meetruis Kalman filter. Groter = sensor als minder betrouwbaar beschouwd → meer gewicht aan model.</td></tr>
+  <tr><td><code>MAX_STEPS</code></td><td>60</td><td>Aantal tijdstappen in de simulatie.</td></tr>
+  <tr><td><code>H_LOOP</code></td><td>0</td><td><code>1</code> = real-time 1 Hz (wacht 1 s per stap); <code>0</code> = zo snel mogelijk (voor snelle tests).</td></tr>
+</table>
+
+<h2>9.5 Verwacht gedrag in de simulatie</h2>
+<ol>
+  <li><strong>Epoch 1–5:</strong> Kalman filter convergeert — de geschatte toestand \(\hat{x}\) begint bij nul en leert de werkelijke toestand snel kennen. De innovatie daalt snel naar nul. In de plot zie je de gestippelde lijn (Kalman-schatting) snel naar de doorgetrokken lijn (meting) bewegen.</li>
+  <li><strong>Epoch 1–19:</strong> MPC stuurt de peilen naar de setpoints. De stuwen worden langzaam bijgesteld; de waterpeilen naderen geleidelijk 0,25 / 0,20 / 0,15 m.</li>
+  <li><strong>Epoch 20:</strong> Stoornis op pool 1 — de innovatie van pool 1 springt omhoog (het model kan de meting niet meer verklaren). In het dashboard verschijnt een alarm. De MPC detecteert via de Kalman-schatting de afwijking en past stuw 1 aan om te compenseren.</li>
+  <li><strong>Epoch 20–60:</strong> Het systeem stabiliseert opnieuw rond de setpoints. De innovatie daalt terug naar nul als het Kalman filter de nieuwe situatie heeft bijgeleerd.</li>
+</ol>
+
+<div class="box green">
+<div class="box-title">Samenvatting</div>
+<p style="margin:0">
+Het WIS Digital Twin-systeem combineert een lineair Cantoni-model van een driebassin-waterinstallatie met een Kalman filter (voor toestandschatting van alle 12 interne toestanden) en een MPC regelaar (voor optimale sturing over een horizon van 10 stappen). De twin loopt elke seconde de volledige cyclus door: meting ophalen → Kalman update → MPC oplossen → loggen en plotten. Storingen worden gedetecteerd via de innovatie en automatisch gecompenseerd. Alle resultaten zijn te volgen in het web-dashboard.
+</p>
+</div>
+
+</div><!-- end .page -->
+</body>
+</html>

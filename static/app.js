@@ -117,12 +117,45 @@ function relayAction(relay, action) {
     .catch(() => showToast('Geen verbinding', true));
 }
 
-// ── Gate mode ─────────────────────────────────────────────────────────────────
-function setMode(mode) {
-  fetch(`/api/firefly/mode/${mode}`, { method: 'POST' })
+// ── Firefly repeat last command ───────────────────────────────────────────────
+let _lastFireflyUrl = null;
+let _repeatTimer    = null;
+
+function sendFireflyCmd(url, label) {
+  fetch(url, { method: 'POST' })
     .then(r => r.json())
     .then(d => {
       if (d.error) { showToast('Fout: ' + d.error, true); return; }
+      _lastFireflyUrl = url;
+    })
+    .catch(() => {});
+  return fetch(url, { method: 'POST' });
+}
+
+function toggleRepeat(on) {
+  clearInterval(_repeatTimer);
+  _repeatTimer = null;
+  const btn = document.getElementById('btn-repeat');
+  if (on) {
+    _repeatTimer = setInterval(() => {
+      if (_lastFireflyUrl) fetch(_lastFireflyUrl, { method: 'POST' }).catch(() => {});
+    }, 5000);
+    if (btn) { btn.classList.add('active'); btn.textContent = 'Sleep Mode: OFF'; }
+    logEvent('Sleep mode uitgeschakeld · Firefly herhaal aan', 'info');
+  } else {
+    if (btn) { btn.classList.remove('active'); btn.textContent = 'Sleep Mode: ON'; }
+    logEvent('Sleep mode ingeschakeld', 'info');
+  }
+}
+
+// ── Gate mode ─────────────────────────────────────────────────────────────────
+function setMode(mode) {
+  const url = `/api/firefly/mode/${mode}`;
+  fetch(url, { method: 'POST' })
+    .then(r => r.json())
+    .then(d => {
+      if (d.error) { showToast('Fout: ' + d.error, true); return; }
+      _lastFireflyUrl = url;
       document.getElementById('mode-manual')?.classList.toggle('active', mode === 'manual');
       document.getElementById('mode-auto')?.classList.toggle('active',   mode === 'auto');
       showToast('Mode: ' + mode);
@@ -330,6 +363,7 @@ document.querySelectorAll('[data-apply]').forEach(btn => {
 });
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
+toggleRepeat(true);
 fetchStatus();
 fetchFirefly();
 setInterval(fetchStatus,  2000);

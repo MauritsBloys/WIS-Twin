@@ -86,7 +86,9 @@ function popApply() {
   if (isNaN(val)) return;
 
   if (_popType === 'gate') {
-    fetch(`/api/firefly/gate/${_popId}/${val}`, { method: 'POST' })
+    const gateUrl = `/api/firefly/gate/${_popId}/${val}`;
+    if (typeof _lastFireflyUrl !== 'undefined') _lastFireflyUrl = gateUrl;
+    fetch(gateUrl, { method: 'POST' })
       .then(r => r.json())
       .then(d => {
         if (d.error) { showToast('Fout: ' + d.error, true); return; }

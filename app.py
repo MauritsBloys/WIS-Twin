@@ -1,9 +1,12 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, Response
 import subprocess
 import threading
 import time
 import re
 import serial
+import csv
+import io
+from datetime import datetime
 
 app = Flask(__name__, static_url_path='', static_folder='static')
 
@@ -46,13 +49,13 @@ FIREFLY_PORT = "/dev/serial/by-id/usb-Silicon_Labs_Zolertia_Firefly_platform_ZOL
 FIREFLY_BAUDRATE = 460800
 
 CALIBRATION = {
-    1: (0.0188, -188.0213),
-    2: (0.0054, -65.1942),
-    3: (0.0181, -181.4417),
-    4: (0.0184, -182.8977),
-    5: (0.0187, -184.0834),
-    6: (0.0054, -59.3130),
-    7: (0.0054, -59.6097),
+    1: (0.0187, -188.303),
+    2: (0.005476, -74.510),
+    3: (0.005357, -63.978),
+    4: (0.01795, -178.394),
+    5: (0.01741, -170.712),
+    6: (0.005458, -59.948),
+    7: (0.005454, -59.748),
 }
 
 NODE_SENSOR_MAP = {
@@ -212,6 +215,98 @@ def firefly_mode(mode):
     if mode == 'auto':
         return jsonify(_send_firefly('205 1'))
     return jsonify({'error': 'Ongeldig mode'}), 400
+
+
+# ── Routes: Meting lekkage ──────────────────────────────────────────────────
+_meas_lock       = threading.Lock()
+_meas_running    = False
+_meas_data       = []        # list of {t, s1..s7}
+_meas_start_time = None
+
+
+def _meas_worker(interval_s):
+    global _meas_running
+    while True:
+        t_now = time.time()
+        with _meas_lock:
+            if not _meas_running:
+                break
+            elapsed = round(t_now - _meas_start_time, 3)
+        with _firefly_data_lock:
+            row = {'t': elapsed}
+            for sid in range(1, 8):
+                row[f's{sid}'] = _sensor_cm.get(sid)
+        with _meas_lock:
+            if _meas_running:
+                _meas_data.append(row)
+        dt = time.time() - t_now
+        time.sleep(max(0.0, interval_s - dt))
+
+
+@app.route('/meting')
+def meting_page():
+    return render_template('meting_lekkage.html')
+
+
+@app.route('/api/meting/start', methods=['POST'])
+def meting_start():
+    global _meas_running, _meas_data, _meas_start_time
+    body = request.get_json() or {}
+    try:
+        interval = max(0.1, float(body.get('interval', 1.0)))
+    except (ValueError, TypeError):
+        interval = 1.0
+    with _meas_lock:
+        if _meas_running:
+            return jsonify({'error': 'Meting al actief'}), 409
+        _meas_running    = True
+        _meas_data       = []
+        _meas_start_time = time.time()
+    threading.Thread(target=_meas_worker, args=(interval,), daemon=True).start()
+    return jsonify({'ok': True, 'interval': interval})
+
+
+@app.route('/api/meting/stop', methods=['POST'])
+def meting_stop():
+    global _meas_running
+    with _meas_lock:
+        _meas_running = False
+    return jsonify({'ok': True})
+
+
+@app.route('/api/meting/status')
+def meting_status():
+    with _meas_lock:
+        running = _meas_running
+        samples = len(_meas_data)
+        elapsed = round(time.time() - _meas_start_time, 1) if _meas_start_time else 0.0
+    return jsonify({'running': running, 'samples': samples, 'elapsed': elapsed})
+
+
+@app.route('/api/meting/data')
+def meting_data():
+    since = request.args.get('since', 0, type=int)
+    with _meas_lock:
+        chunk = list(_meas_data[since:])
+        total = since + len(chunk)
+    return jsonify({'data': chunk, 'total': total})
+
+
+@app.route('/api/meting/export')
+def meting_export():
+    with _meas_lock:
+        snapshot = list(_meas_data)
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(['t_s', 's1_cm', 's2_cm', 's3_cm', 's4_cm', 's5_cm', 's6_cm', 's7_cm'])
+    for row in snapshot:
+        w.writerow([row['t']] + [row.get(f's{i}') for i in range(1, 8)])
+    ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+    return Response(
+        buf.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename=meting_{ts}.csv'}
+    )
 
 
 if __name__ == '__main__':

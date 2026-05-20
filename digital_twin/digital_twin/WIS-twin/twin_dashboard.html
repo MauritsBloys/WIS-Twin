@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <title>WIS Digital Twin Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body   { font-family: monospace; background: #0d1117; color: #c9d1d9; margin: 0; padding: 16px; }
+    h1     { color: #58a6ff; margin: 0 0 4px; font-size: 1.4rem; }
+    .topbar { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+    .badge  { display: inline-block; padding: 2px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+    .hw     { background: #238636; }
+    .sim    { background: #9e6a03; }
+    #last-update { color: #8b949e; font-size: 12px; margin: 0 0 8px; }
+    .alert  { color: #f85149; font-weight: bold; background: #2d1a1a; border: 1px solid #f85149;
+              border-radius: 6px; padding: 6px 12px; margin-bottom: 10px; display: inline-block; }
+    .grid   { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+    .card   { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 14px 16px; }
+    .card-title { font-size: 13px; font-weight: bold; color: #e6edf3; margin: 0 0 2px; }
+    .card-sub   { font-size: 11px; color: #8b949e; margin: 0 0 10px; }
+    canvas  { max-height: 210px; }
+
+    /* Status panel */
+    .status-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 4px; }
+    .stat-box    { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px 8px; text-align: center; }
+    .stat-label  { font-size: 10px; color: #8b949e; margin-bottom: 4px; }
+    .stat-val    { font-size: 20px; font-weight: bold; color: #58a6ff; }
+    .stat-unit   { font-size: 10px; color: #8b949e; }
+    .stat-sub    { font-size: 10px; color: #3fb950; margin-top: 2px; }
+    .stat-warn   { color: #f85149; }
+    .divider     { border: none; border-top: 1px solid #30363d; margin: 10px 0; }
+    .ref-row     { display: flex; justify-content: space-between; font-size: 11px; color: #8b949e; padding: 2px 0; }
+    .ref-val     { color: #c9d1d9; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>WIS Digital Twin</h1>
+    <span id="mode-badge" class="badge sim">SIMULATOR</span>
+  </div>
+  <p id="last-update">Wacht op data...</p>
+  <div id="alert-box"></div>
+
+  <div class="grid">
+
+    <!-- 1: Water levels -->
+    <div class="card">
+      <p class="card-title">Waterpeilen — meting vs. Kalman-voorspelling</p>
+      <p class="card-sub">Eenheden: meter [m] &nbsp;|&nbsp; Gestippeld = voorspelling van Kalman-filter &nbsp;|&nbsp; Horizontale lijn = setpoint</p>
+      <canvas id="ch-levels"></canvas>
+    </div>
+
+    <!-- 2: Innovation -->
+    <div class="card">
+      <p class="card-title">Innovatie — verschil meting min voorspelling</p>
+      <p class="card-sub">Eenheden: meter [m] &nbsp;|&nbsp; Hoge waarde = model wijkt af van werkelijkheid &nbsp;|&nbsp; Drempelwaarde: ±0,02 m</p>
+      <canvas id="ch-innov"></canvas>
+    </div>
+
+    <!-- 3: MPC control -->
+    <div class="card">
+      <p class="card-title">MPC-stuurcommando per stuw</p>
+      <p class="card-sub">Eenheden: Cantoni signaalwaarde [0–0.5] &nbsp;|&nbsp; Berekend door de MPC-regelaar op basis van Kalman-schatting</p>
+      <canvas id="ch-umpc"></canvas>
+    </div>
+
+    <!-- 4: Status panel -->
+    <div class="card">
+      <p class="card-title">Huidige waarden — laatste tijdstap</p>
+      <p class="card-sub">Live snapshot van de meest recente regel in de logfile</p>
+
+      <div class="status-grid" id="status-grid">
+        <div class="stat-box"><div class="stat-label">Peil pool 1</div><div class="stat-val" id="s-y1">—</div><div class="stat-unit">m</div><div class="stat-sub" id="s-y1-ref"></div></div>
+        <div class="stat-box"><div class="stat-label">Peil pool 2</div><div class="stat-val" id="s-y2">—</div><div class="stat-unit">m</div><div class="stat-sub" id="s-y2-ref"></div></div>
+        <div class="stat-box"><div class="stat-label">Peil pool 3</div><div class="stat-val" id="s-y3">—</div><div class="stat-unit">m</div><div class="stat-sub" id="s-y3-ref"></div></div>
+        <div class="stat-box"><div class="stat-label">Stuw u1</div><div class="stat-val" id="s-u1">—</div><div class="stat-unit">Cantoni</div></div>
+        <div class="stat-box"><div class="stat-label">Stuw u2</div><div class="stat-val" id="s-u2">—</div><div class="stat-unit">Cantoni</div></div>
+        <div class="stat-box"><div class="stat-label">Stuw u3</div><div class="stat-val" id="s-u3">—</div><div class="stat-unit">Cantoni</div></div>
+      </div>
+
+      <hr class="divider">
+      <p style="font-size:11px;color:#8b949e;margin:4px 0 6px;">Setpoints (y_ref)</p>
+      <div class="ref-row"><span>Pool 1</span><span class="ref-val" id="ref-1">—</span></div>
+      <div class="ref-row"><span>Pool 2</span><span class="ref-val" id="ref-2">—</span></div>
+      <div class="ref-row"><span>Pool 3</span><span class="ref-val" id="ref-3">—</span></div>
+      <hr class="divider">
+      <div class="ref-row"><span>Max innovatie (abs)</span><span class="ref-val" id="max-innov">—</span></div>
+      <div class="ref-row"><span>Epoch</span><span class="ref-val" id="cur-epoch">—</span></div>
+    </div>
+
+  </div>
+
+  <!-- 5+6: vergelijkingsrij -->
+  <div class="grid" style="margin-top: 14px;">
+    <div class="card">
+      <p class="card-title">Waterpeilen: MPC vs. geen regeling</p>
+      <p class="card-sub">Doorgetrokken = MPC &nbsp;|&nbsp; Gestippeld = open lus (u=0) &nbsp;|&nbsp; Horizontale lijn = setpoint</p>
+      <canvas id="ch-compare"></canvas>
+    </div>
+    <div class="card">
+      <p class="card-title">Sluisbewegingen — MPC stuurcommando's</p>
+      <p class="card-sub">Eenheden: Cantoni [0–0.5] &nbsp;|&nbsp; Trapvorm toont discrete stuurstappen &nbsp;|&nbsp; Zonder regeling: u = 0</p>
+      <canvas id="ch-gates"></canvas>
+    </div>
+  </div>
+
+<script>
+const ALERT_THRESHOLD = 0.02;
+const POLL_MS = 2000;
+const MAX_POINTS = 120;
+const Y_REF = [0.25, 0.20, 0.15];   // must match twin_config.m y_ref
+
+// Seed ref display
+['ref-1','ref-2','ref-3'].forEach((id,i) => {
+  document.getElementById(id).textContent = Y_REF[i].toFixed(3) + ' m';
+});
+
+const colors = ['#58a6ff', '#f85149', '#3fb950'];
+
+function makeChart(id, yLabel, datasets, yMin, yMax) {
+  return new Chart(document.getElementById(id), {
+    type: 'line',
+    data: { labels: [], datasets },
+    options: {
+      animation: false,
+      plugins: {
+        legend: { labels: { color: '#c9d1d9', boxWidth: 20, padding: 10, font: { size: 11 } } },
+        title:  { display: false }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'Epoch (stap)', color: '#8b949e', font: { size: 10 } },
+          ticks: { color: '#8b949e', maxTicksLimit: 10 },
+          grid:  { color: '#21262d' }
+        },
+        y: {
+          title: { display: true, text: yLabel, color: '#8b949e', font: { size: 10 } },
+          ticks: { color: '#8b949e' },
+          grid:  { color: '#21262d' },
+          ...(yMin !== undefined ? { min: yMin } : {}),
+          ...(yMax !== undefined ? { max: yMax } : {})
+        }
+      }
+    }
+  });
+}
+
+const chartLevels = makeChart('ch-levels', 'waterpeil [m]', [
+  ...colors.map((c,i) => ({ label: `Pool ${i+1} meting`,    borderColor: c, backgroundColor: c+'22', fill: false, data: [], pointRadius: 0, borderWidth: 2 })),
+  ...colors.map((c,i) => ({ label: `Pool ${i+1} voorspeld`, borderColor: c, borderDash: [5,3],        fill: false, data: [], pointRadius: 0, borderWidth: 1.5 })),
+]);
+
+const chartInnov = makeChart('ch-innov', 'innovatie [m]', [
+  ...colors.map((c,i) => ({ label: `Pool ${i+1}`, borderColor: c, fill: false, data: [], pointRadius: 0, borderWidth: 2 })),
+]);
+
+const chartU = makeChart('ch-umpc', 'Cantoni [0–0.5]',
+  colors.map((c,i) => ({ label: `Stuw ${i+1}`, borderColor: c, fill: false, data: [], pointRadius: 0, borderWidth: 2 })),
+  0, 0.5
+);
+
+const chartCompare = makeChart('ch-compare', 'waterpeil [m]', [
+  ...colors.map((c,i) => ({ label: `Pool ${i+1} MPC`,          borderColor: c, fill: false, data: [], pointRadius: 0, borderWidth: 2 })),
+  ...colors.map((c,i) => ({ label: `Pool ${i+1} geen regeling`, borderColor: c, borderDash: [5,4], fill: false, data: [], pointRadius: 0, borderWidth: 1.5 })),
+  ...Y_REF.map((ref,i) => ({ label: `Setpoint ${i+1}`,          borderColor: colors[i], borderDash: [2,6], fill: false, data: [], pointRadius: 0, borderWidth: 1 })),
+]);
+
+const chartGates = makeChart('ch-gates', 'Cantoni [0–0.5]',
+  colors.map((c,i) => ({ label: `Sluis ${i+1}`, borderColor: c, fill: false, data: [], pointRadius: 0, borderWidth: 2, stepped: 'before' })),
+  0, 0.5
+);
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+  return lines.slice(1).map(l => l.split(',').map(Number));
+}
+
+function push(chart, label, values) {
+  chart.data.labels.push(label);
+  values.forEach((v,i) => chart.data.datasets[i].data.push(v));
+  if (chart.data.labels.length > MAX_POINTS) {
+    chart.data.labels.shift();
+    chart.data.datasets.forEach(d => d.data.shift());
+  }
+}
+
+function setEl(id, text, warn) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = 'stat-val' + (warn ? ' stat-warn' : '');
+}
+
+async function poll() {
+  try {
+    const resp = await fetch('data/twin_log.csv?t=' + Date.now());
+    const text = await resp.text();
+    const rows = parseCSV(text);
+    if (rows.length === 0) return;
+
+    chartLevels.data.labels  = []; chartLevels.data.datasets.forEach(d => d.data = []);
+    chartInnov.data.labels   = []; chartInnov.data.datasets.forEach(d => d.data = []);
+    chartU.data.labels       = []; chartU.data.datasets.forEach(d => d.data = []);
+    chartCompare.data.labels = []; chartCompare.data.datasets.forEach(d => d.data = []);
+    chartGates.data.labels   = []; chartGates.data.datasets.forEach(d => d.data = []);
+
+    const recent = rows.slice(-MAX_POINTS);
+    recent.forEach(r => {
+      const epoch = r[0];
+      push(chartLevels, epoch, [r[1],r[2],r[3], r[4],r[5],r[6]]);
+      push(chartInnov,  epoch, [r[7],r[8],r[9]]);
+      push(chartU,      epoch, [r[10],r[11],r[12]]);
+      // kolommen 14-16: y_nompc (NaN in hardware-modus → null voor Chart.js gaten)
+      const nm = [r[14],r[15],r[16]].map(v => (v == null || isNaN(v)) ? null : v);
+      push(chartCompare, epoch, [r[1],r[2],r[3], nm[0],nm[1],nm[2], Y_REF[0],Y_REF[1],Y_REF[2]]);
+      push(chartGates,   epoch, [r[10],r[11],r[12]]);
+    });
+
+    chartLevels.update(); chartInnov.update(); chartU.update();
+    chartCompare.update(); chartGates.update();
+
+    // Status panel
+    const last = rows[rows.length - 1];
+    const maxInnov = Math.max(Math.abs(last[7]), Math.abs(last[8]), Math.abs(last[9]));
+
+    [1,2,3].forEach(i => {
+      const meas = last[i];
+      const err  = meas - Y_REF[i-1];
+      const warn = Math.abs(err) > ALERT_THRESHOLD;
+      setEl('s-y' + i, isNaN(meas) ? '—' : meas.toFixed(4), warn);
+      const subEl = document.getElementById('s-y' + i + '-ref');
+      if (subEl) subEl.textContent = isNaN(err) ? '' : (err >= 0 ? '+' : '') + (err*1000).toFixed(1) + ' mm t.o.v. setpoint';
+    });
+    [1,2,3].forEach(i => {
+      const u = last[9+i];
+      setEl('s-u' + i, isNaN(u) ? '—' : u.toFixed(1));
+    });
+
+    document.getElementById('max-innov').textContent =
+      isNaN(maxInnov) ? '—' : maxInnov.toFixed(5) + ' m' + (maxInnov > ALERT_THRESHOLD ? ' ⚠' : '');
+    document.getElementById('cur-epoch').textContent = last[0];
+
+    // Alert
+    const alertBox = document.getElementById('alert-box');
+    if (maxInnov > ALERT_THRESHOLD) {
+      alertBox.textContent = '⚠ Hoge innovatie: ' + maxInnov.toFixed(4) + ' m — Kalman-model wijkt significant af van meting';
+      alertBox.className = 'alert';
+    } else {
+      alertBox.textContent = '';
+      alertBox.className = '';
+    }
+
+    document.getElementById('last-update').textContent =
+      'Laatste update: epoch ' + last[0] + ' — ' + new Date().toLocaleTimeString('nl-NL');
+  } catch(e) {
+    console.warn('Poll mislukt:', e);
+    document.getElementById('last-update').textContent = 'Fout bij laden data — is de HTTP-server actief?';
+  }
+}
+
+setInterval(poll, POLL_MS);
+poll();
+</script>
+</body>
+</html>

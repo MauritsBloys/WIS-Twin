@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<title>WIS Digital Twin — Ruis Covariantie Schatting</title>
+<script>
+window.MathJax = {
+  tex: { inlineMath: [['\\(','\\)'], ['$','$']], displayMath: [['\\[','\\]'], ['$$','$$']] },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+body { font-family: Georgia, 'Times New Roman', serif; font-size: 11pt; color: #1a1a1a;
+       background: #fff; margin: 0; padding: 0; line-height: 1.70; }
+a { color: #1a4a8a; }
+.page { max-width: 210mm; margin: 0 auto; padding: 20mm 22mm; }
+
+h1 { font-size: 22pt; color: #0d2b5e; border-bottom: 3px solid #0d2b5e; padding-bottom: 6px; margin-top: 0; }
+h2 { font-size: 15pt; color: #0d2b5e; border-bottom: 1px solid #c0cce0; padding-bottom: 4px; margin-top: 2em; }
+h3 { font-size: 12pt; color: #1a4a8a; margin-top: 1.6em; }
+h4 { font-size: 11pt; color: #333; font-style: italic; margin-top: 1.2em; }
+p  { margin: 0.5em 0 0.9em; }
+ul, ol { margin: 0.3em 0 0.9em 1.4em; }
+li { margin-bottom: 0.4em; }
+code { font-family: 'Courier New', monospace; font-size: 9.5pt; background: #f0f4f8;
+       padding: 1px 4px; border-radius: 3px; }
+pre { background: #f0f4f8; border-left: 3px solid #4a7cc7; padding: 10px 14px;
+      font-size: 9pt; font-family: 'Courier New', monospace; overflow-x: auto;
+      margin: 0.8em 0; line-height: 1.4; }
+strong { color: #0d2b5e; }
+
+.box { border-left: 4px solid #4a7cc7; background: #f0f5ff; padding: 12px 16px;
+       margin: 1.2em 0; border-radius: 0 6px 6px 0; }
+.box.green  { border-color: #2a7a4a; background: #f0fff4; }
+.box.orange { border-color: #c07020; background: #fff8f0; }
+.box.red    { border-color: #a02020; background: #fff0f0; }
+.box-title  { font-weight: bold; color: #0d2b5e; margin-bottom: 6px; }
+
+table { border-collapse: collapse; width: 100%; margin: 0.9em 0; font-size: 10pt; }
+th { background: #0d2b5e; color: #fff; padding: 7px 10px; text-align: left; }
+td { padding: 6px 10px; border-bottom: 1px solid #dde3ec; vertical-align: top; }
+tr:nth-child(even) td { background: #f5f7fb; }
+
+figure { margin: 1.6em 0; text-align: center; }
+figcaption { font-size: 9.5pt; color: #555; margin-top: 8px; font-style: italic; }
+
+.cover { text-align: center; padding: 60px 0 40px; }
+.cover h1 { font-size: 28pt; border: none; }
+.cover .subtitle { font-size: 14pt; color: #4a6090; margin: 8px 0; }
+.cover .meta { font-size: 10pt; color: #666; margin-top: 40px; line-height: 2.2; }
+.cover hr { border: none; border-top: 2px solid #0d2b5e; margin: 24px auto; width: 60%; }
+
+.toc { margin: 1em 0; }
+.toc a { text-decoration: none; color: #1a1a1a; }
+.toc li { padding: 3px 0; }
+.toc .ch { font-weight: bold; color: #0d2b5e; }
+.toc .sub { padding-left: 22px; font-size: 10pt; color: #555; }
+
+.eq-block { margin: 1.2em 2.5em; }
+
+.step-header { display: flex; align-items: center; gap: 14px; margin-bottom: 0.4em; }
+.step-num { background: #0d2b5e; color: #fff; font-size: 13pt; font-weight: bold;
+            width: 36px; height: 36px; border-radius: 50%; display: flex;
+            align-items: center; justify-content: center; flex-shrink: 0; }
+.step-title { font-size: 14pt; color: #0d2b5e; font-weight: bold; }
+
+.analogy { border: 1px solid #b0c4de; background: #f7faff; border-radius: 6px;
+           padding: 12px 16px; margin: 1.2em 0; }
+.analogy-title { font-weight: bold; color: #1a4a8a; margin-bottom: 4px; }
+
+.formula-explain { background: #fffbf0; border: 1px dashed #c8a020; border-radius: 4px;
+                   padding: 10px 14px; margin: 0.4em 0 1em; font-size: 10pt; }
+
+@media print {
+  .page { padding: 0; max-width: 100%; }
+  .page-break { page-break-after: always; }
+  .no-print { display: none; }
+  h2 { page-break-after: avoid; }
+  h3 { page-break-after: avoid; }
+  figure, pre, .box, .analogy { page-break-inside: avoid; }
+}
+@page { size: A4; margin: 2cm 2.2cm; }
+
+.print-btn { position: fixed; bottom: 20px; right: 20px; background: #0d2b5e; color: #fff;
+             border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer;
+             font-size: 11pt; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+.print-btn:hover { background: #1a4a8a; }
+</style>
+</head>
+<body>
+<button class="print-btn no-print" onclick="window.print()">Opslaan als PDF</button>
+<div class="page">
+
+<!-- ══════════════ TITELBLAD ══════════════ -->
+<div class="cover">
+  <h1>WIS Digital Twin</h1>
+  <div class="subtitle">Ruis Covariantie Schatting</div>
+  <div class="subtitle">Hoe bepaal je Q en R uit echte sensordata?</div>
+  <hr>
+  <div class="meta">
+    Water Infrastructuur Systeem<br>
+    Methode: EM-algoritme (Shumway &amp; Stoffer, 1982)<br>
+    Mei 2026
+  </div>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ══════════════ INHOUDSOPGAVE ══════════════ -->
+<h2>Inhoudsopgave</h2>
+<ul class="toc">
+  <li class="ch"><a href="#achtergrond">1. Achtergrond: wat zijn Q en R eigenlijk?</a></li>
+  <li class="sub"><a href="#kalman-uitleg">1.1 Hoe werkt een Kalman-filter in gewone taal</a></li>
+  <li class="sub"><a href="#qr-uitleg">1.2 Wat Q en R fysiek betekenen</a></li>
+  <li class="sub"><a href="#waarom-schatten">1.3 Waarom handmatig kiezen niet goed genoeg is</a></li>
+  <li class="sub"><a href="#model">1.4 Het toestandsruimtemodel</a></li>
+  <li class="sub"><a href="#data-uitleg">1.5 De beschikbare meetdata</a></li>
+  <li class="ch"><a href="#aanpak">2. Aanpak op hoofdlijnen</a></li>
+  <li class="ch"><a href="#stap1">3. Stap 1 &mdash; Data inladen en voorbereiden</a></li>
+  <li class="ch"><a href="#stap2">4. Stap 2 &mdash; Plantmodel laden</a></li>
+  <li class="ch"><a href="#stap3">5. Stap 3 &mdash; R schatten uit het stationaire segment</a></li>
+  <li class="ch"><a href="#stap4">6. Stap 4 &mdash; Q schatten via het EM-algoritme</a></li>
+  <li class="sub"><a href="#em-idee">6.1 Waarom hebben we EM nodig?</a></li>
+  <li class="sub"><a href="#em-stappen">6.2 Hoe werkt EM stap voor stap</a></li>
+  <li class="sub"><a href="#rts">6.3 De Kalman-smoother (RTS)</a></li>
+  <li class="sub"><a href="#mstap">6.4 De M-stap: Q en R updaten</a></li>
+  <li class="sub"><a href="#sparse-q">6.4.1 Sparse structuur van Q</a></li>
+  <li class="sub"><a href="#code">6.5 MATLAB-implementatie</a></li>
+  <li class="ch"><a href="#stap5">7. Stap 5 &mdash; Validatie</a></li>
+  <li class="ch"><a href="#stap6">8. Stap 6 &mdash; Inbouwen in de twin</a></li>
+  <li class="ch"><a href="#samenvatting">9. Samenvatting</a></li>
+</ul>
+
+<div class="page-break"></div>
+
+<!-- ══════════════ 1. ACHTERGROND ══════════════ -->
+<h2 id="achtergrond">1. Achtergrond: wat zijn Q en R eigenlijk?</h2>
+
+<h3 id="kalman-uitleg">1.1 Hoe werkt een Kalman-filter in gewone taal</h3>
+
+<p>Een Kalman-filter is een algoritme dat op elk tijdstip de beste schatting maakt van de
+toestand van een systeem &mdash; in dit geval de waterstand in drie pools &mdash; door twee
+informatiebronnen slim te combineren:</p>
+
+<ol>
+  <li><strong>Het model:</strong> op basis van vergelijkingen die het systeem beschrijven
+      kan het filter <em>voorspellen</em> hoe de waterstand zich zal gedragen.</li>
+  <li><strong>De meting:</strong> de echte sensoren leveren elke seconde een actuele waarde.</li>
+</ol>
+
+<p>Beide bronnen zijn onvolmaakt. Het model is een vereenvoudiging van de werkelijkheid,
+en de sensor meet altijd met een beetje ruis. Het Kalman-filter berekent automatisch een
+<strong>gewogen gemiddelde</strong> van beide: hoe meer het het model vertrouwt ten opzichte
+van de sensor, hoe meer het de modelvoorspelling volgt en hoe minder het reageert op
+meetfluctuaties.</p>
+
+<div class="analogy">
+  <div class="analogy-title">Analogie: navigeren met een kaart en een GPS</div>
+  Stel je rijdt door een tunnel en je GPS verliest signaal. Je hebt nog wel een kaart
+  en een snelheidsmeter. Daarmee kun je uitrekenen waar je ongeveer bent (het model).
+  Zodra je de tunnel uitkomt en de GPS werkt weer, vergelijk je die berekende positie
+  met de GPS-positie (de meting). Als je snelheidsmeter heel nauwkeurig is, vertrouw je
+  de berekening meer. Als de GPS heel precies is, vertrouw je de GPS meer. Het
+  Kalman-filter doet precies deze afweging &mdash; elk tijdstap opnieuw.
+</div>
+
+<h3 id="qr-uitleg">1.2 Wat Q en R fysiek betekenen</h3>
+
+<p>Die afweging tussen model en meting wordt bepaald door precies twee matrices:</p>
+
+<table>
+  <tr><th>Matrix</th><th>Naam</th><th>Wat het modelleert</th><th>Praktische betekenis</th></tr>
+  <tr>
+    <td><strong>Q</strong></td>
+    <td>Procesruis&shy;covariantie</td>
+    <td>Onzekerheid in de <em>toestandsovergang</em>: hoeveel wijkt de werkelijkheid
+        af van wat het model voorspelt van tijdstap naar tijdstap?</td>
+    <td>Ongemeten invloeden: regen, wind, lekken, pompen die niet in het model zitten.
+        <em>Groot Q</em> = het model is onbetrouwbaar.</td>
+  </tr>
+  <tr>
+    <td><strong>R</strong></td>
+    <td>Meetruis&shy;covariantie</td>
+    <td>Onzekerheid in de <em>meting</em>: hoeveel ruis zit er op de sensorwaarden?</td>
+    <td>Elektronische ruis, trillingen, golfjes op het wateroppervlak.
+        <em>Groot R</em> = de sensor is onbetrouwbaar.</td>
+  </tr>
+</table>
+
+<p>De <strong>verhouding</strong> tussen Q en R bepaalt het gedrag van het filter volledig:</p>
+
+<table>
+  <tr><th>Situatie</th><th>Effect op het filter</th></tr>
+  <tr>
+    <td>Q veel groter dan R</td>
+    <td>Filter vertrouwt de meting meer &rarr; reageert snel op veranderingen,
+        maar volgt ook individuele meetpieken mee</td>
+  </tr>
+  <tr>
+    <td>R veel groter dan Q</td>
+    <td>Filter vertrouwt het model meer &rarr; stabiele schatting,
+        maar reageert traag op echte veranderingen in waterstand</td>
+  </tr>
+  <tr>
+    <td>Q en R in de juiste verhouding</td>
+    <td>Optimale balans: filter reageert snel op echte veranderingen
+        en filtert meetsensorruis weg</td>
+  </tr>
+</table>
+
+<div class="box orange">
+  <div class="box-title">Wat gaat er mis bij verkeerde Q en R?</div>
+  <ul style="margin-bottom:0">
+    <li><strong>Q te klein:</strong> het filter reageert te traag als de waterstand echt
+        verandert door een verstoring. De MPC-regelaar krijgt verouderde informatie.</li>
+    <li><strong>Q te groot:</strong> het filter volgt elke meetpiek mee alsof het een echte
+        toestandsverandering is. De regelaar maakt onnodige correcties.</li>
+    <li><strong>R te klein:</strong> het filter vertrouwt de sensor te veel en filtert
+        de ruis niet weg &mdash; de schatting is onnodig noisy.</li>
+    <li><strong>R te groot:</strong> het filter negeert de metingen bijna volledig en
+        vertrouwt op een model dat de werkelijkheid nooit perfect beschrijft.</li>
+  </ul>
+</div>
+
+<h3 id="waarom-schatten">1.3 Waarom handmatig kiezen niet goed genoeg is</h3>
+
+<p>Tot nu toe waren Q en R willekeurig gekozen schaalwaarden:
+<code>Q_kal_scale&nbsp;=&nbsp;1e-4</code> en <code>R_kal_scale&nbsp;=&nbsp;1e-3</code>.
+Dit werkt als eerste schatting, maar heeft twee nadelen:</p>
+
+<ol>
+  <li>De werkelijke sensorruis hangt af van het specifieke meetapparaat en de
+      meetomgeving. Voor de WIS-sensoren kan dit sterk afwijken van de gekozen waarden.</li>
+  <li>De werkelijke procesruis hangt af van hoe goed het Cantoni-model de hydraulica
+      beschrijft. Dit is per definitie onbekend zonder data.</li>
+</ol>
+
+<p>In dit document schatten we Q en R <strong>direct uit een open-lus experiment</strong>
+met het echte systeem, zodat het Kalman-filter statistisch optimaal afgestemd is op de
+werkelijke omstandigheden.</p>
+
+<h3 id="model">1.4 Het toestandsruimtemodel</h3>
+
+<p>Het WIS-systeem wordt beschreven door een <strong>toestandsruimtemodel</strong>. Dit is
+een wiskundige manier om een dynamisch systeem te beschrijven met twee vergelijkingen.</p>
+
+<p>De <strong>toestandsvergelijking</strong> beschrijft hoe het systeem zich van tijdstap
+naar tijdstap ontwikkelt:</p>
+<div class="eq-block">
+$$x(k+1) = A\,x(k) + B\,u(k) + w(k)$$
+</div>
+<div class="formula-explain">
+  <strong>Lees dit als:</strong> de toestand op het volgende tijdstip
+  = wat het model voorspelt (\(A\,x(k) + B\,u(k)\))
+  + een klein onbekend restje (\(w(k)\), de procesruis met covariantie Q).
+</div>
+
+<p>De <strong>meetvergelijking</strong> beschrijft wat de sensoren waarnemen:</p>
+<div class="eq-block">
+$$y(k) = C\,x(k) + v(k)$$
+</div>
+<div class="formula-explain">
+  <strong>Lees dit als:</strong> de gemeten waterstand
+  = de werkelijke waterstand (\(C\,x(k)\))
+  + een klein onbekend restje (\(v(k)\), de meetsensorruis met covariantie R).
+</div>
+
+<p>Hierbij zijn:</p>
+<ul>
+  <li>\(x \in \mathbb{R}^{12}\) &mdash; de toestandsvector: het Cantoni-model heeft naast
+      de drie waterstandsafwijkingen ook Pad&eacute;-vertraging- en actuatortoestanden.
+      De <strong>waterstandstoestanden staan op posities 1, 5 en 9</strong>; de overige
+      negen posities zijn interne modeltoestanden die nooit direct worden verstoord
+      door regen, lekken of pompen</li>
+  <li>\(y \in \mathbb{R}^3\) &mdash; de drie gemeten waterstandsafwijkingen</li>
+  <li>\(u \in \mathbb{R}^3\) &mdash; de drie schuifinputs (nul tijdens dit experiment)</li>
+  <li>\(w(k) \sim \mathcal{N}(0, Q)\) &mdash; procesruis, normaal verdeeld met covariantie Q</li>
+  <li>\(v(k) \sim \mathcal{N}(0, R)\) &mdash; meetsensorruis, normaal verdeeld met covariantie R</li>
+</ul>
+
+<p>Omdat alle schuiven gesloten waren (\(u = 0\)), vereenvoudigt de toestandsvergelijking tot:</p>
+<div class="eq-block">
+$$x(k+1) = A\,x(k) + w(k)$$
+</div>
+
+<h3 id="data-uitleg">1.5 De beschikbare meetdata</h3>
+
+<p>Het experiment leverde een CSV-bestand op met 7 sensorkolommen. Drie daarvan zijn
+relevant voor het Kalman-filter:</p>
+
+<table>
+  <tr><th>Modeluitgang</th><th>Sensorkolom</th><th>Fysieke betekenis</th></tr>
+  <tr><td>y&#8321;</td><td>s2</td><td>Waterstand pool 1</td></tr>
+  <tr><td>y&#8322;</td><td>s4</td><td>Waterstand pool 2</td></tr>
+  <tr><td>y&#8323;</td><td>s6</td><td>Waterstand pool 3</td></tr>
+</table>
+
+<table>
+  <tr><th>Eigenschap</th><th>Waarde</th></tr>
+  <tr><td>Eenheid</td><td>cm &rarr; omzetten naar m</td></tr>
+  <tr><td>Bemonsteringstijd</td><td>&asymp; 2 s &rarr; resamplen naar 1 Hz</td></tr>
+  <tr><td>Totale duur</td><td>786 s (&asymp; 393 meetpunten)</td></tr>
+  <tr><td>Stuurinput u</td><td>0 (alle schuiven gesloten)</td></tr>
+  <tr><td>Karakter signaal</td><td>Open-lus transient gevolgd door quasi-stationair segment</td></tr>
+</table>
+
+<div class="box">
+  <div class="box-title">Wat zien we in de data?</div>
+  Sensor s2 (y&#8321;) begint hoog (~62 cm) en daalt langzaam &mdash; één pool loopt leeg.
+  Sensoren s4 en s6 (y&#8322; en y&#8323;) bewegen veel minder en stabiliseren zich
+  na ongeveer 500 seconden. Dit stabiele eindsegment is waardevol: daar zit vrijwel alleen
+  meetsensorruis en kunnen we R direct schatten.
+</div>
+
+<div class="page-break"></div>
+
+<!-- ══════════════ 2. AANPAK ══════════════ -->
+<h2 id="aanpak">2. Aanpak op hoofdlijnen</h2>
+
+<p>De schattingsprocedure bestaat uit drie inhoudelijke stappen, elk met een andere methode:</p>
+
+<table>
+  <tr><th>Wat</th><th>Methode</th><th>Waarom deze aanpak</th></tr>
+  <tr>
+    <td><strong>R schatten</strong></td>
+    <td>Variantie van hoog-frequente ruis in het stabiele segment</td>
+    <td>R is de meetsensorruis. Als het systeem stilstaat, zijn de fluctuaties in de sensor
+        puur meetsensorruis. De variantie van die fluctuaties is direct een schatting van R.</td>
+  </tr>
+  <tr>
+    <td><strong>Q schatten</strong></td>
+    <td>EM-algoritme met Kalman-smoother</td>
+    <td>Q zit op de toestand x die we nooit direct meten. EM lost dit op door Q iteratief
+        te schatten uit de meetreeks via een verborgen-toestandsschatting.</td>
+  </tr>
+  <tr>
+    <td><strong>Validatie</strong></td>
+    <td>Witheidstoets op de Kalman-filter innovaties</td>
+    <td>Als Q en R correct zijn, mag het filter geen structuur meer missen in de
+        data. De innovaties (restfouten) moeten dan puur willekeurig zijn.</td>
+  </tr>
+</table>
+
+<div class="page-break"></div>
+
+<!-- ══════════════ STAP 1 ══════════════ -->
+<h2 id="stap1">
+  <div class="step-header">
+    <span class="step-num">1</span>
+    <span class="step-title">Data inladen en voorbereiden</span>
+  </div>
+</h2>
+
+<p><strong>Doel:</strong> de ruwe CSV omzetten naar een uniforme tijdreeks van 1&nbsp;Hz
+in meters, precies passend bij het plantmodel.</p>
+
+<h3>Waarom is dit nodig?</h3>
+<p>Het Kalman-filter en het plantmodel zijn ontworpen voor een bemonsteringstijd van
+<strong>1 seconde</strong>. De sensor bemonstert echter elke &asymp; 2 seconden. Als we de
+data zo gebruiken, klopt de tijdschaal niet met het model &mdash; het filter zou dan
+twee keer zoveel tijd laten verstrijken per stap als het model verwacht, wat de dynamica
+verstoort. Lineaire interpolatie zet de data om naar een uniforme 1&nbsp;Hz tijdas.</p>
+
+<p>De sensoren meten in <strong>centimeters</strong>; het model werkt in
+<strong>meters</strong>. Delen door 100 is dus nodig.</p>
+
+<pre>raw   = readmatrix('data.csv');
+t_raw = raw(:, 1);
+y_raw = raw(:, [3, 5, 7]) / 100;      % kolommen s2, s4, s6 — omgezet naar [m]
+
+t_1hz = (0 : floor(t_raw(end)))';     % uniforme tijdas: 0, 1, 2, ... seconden
+y     = interp1(t_raw, y_raw, t_1hz, 'linear')';   % resultaat: 3 x N matrix
+N     = size(y, 2);</pre>
+
+<div class="box green">
+  <div class="box-title">Verificatie</div>
+  <code>size(y)</code> moet <code>[3, ~786]</code> zijn: 3 sensoren, ~786 tijdstappen.
+  Maak een plot van alle drie kanalen om te bevestigen dat de tijdreeksen er logisch uitzien.
+</div>
+
+<!-- ══════════════ STAP 2 ══════════════ -->
+<h2 id="stap2">
+  <div class="step-header">
+    <span class="step-num">2</span>
+    <span class="step-title">Plantmodel laden</span>
+  </div>
+</h2>
+
+<p><strong>Doel:</strong> de matrices A en C ophalen uit het WIS-simulatiemodel.
+Deze matrices beschrijven hoe het systeem zich gedraagt en zijn benodigd voor de
+Kalman-smoother.</p>
+
+<h3>Wat zijn A en C?</h3>
+<ul>
+  <li><strong>A</strong> (de systeemmatrix): beschrijft hoe de toestand \(x\) van tijdstap
+      naar tijdstap evolueert. Een eigenwaarde van A dicht bij 1 betekent een langzame,
+      traag veranderende toestandsvariabele.</li>
+  <li><strong>C</strong> (de uitgangsmatrix): beschrijft welke combinatie van toestandsvariabelen
+      de sensor waarneemt. In dit geval selecteert C de drie waterstandscomponenten uit de
+      volledige toestandsvector.</li>
+</ul>
+
+<p>Het continue Cantoni-model wordt gediscretiseerd met <strong>Zero-Order Hold (ZOH)</strong>
+op 1&nbsp;Hz &mdash; dezelfde discretisatie als in <code>digital_twin.m</code>,
+zodat alles consistent blijft.</p>
+
+<pre>load('../WIS-sim/simulation/distributed_workspace.mat', 'comb_plant_cont');
+plant = c2d(comb_plant_cont, 1, 'zoh');
+A  = plant.A;
+B  = plant.B;    % niet gebruikt, want u = 0 tijdens het experiment
+C  = plant.C;
+nx = size(A, 1); % aantal toestandsvariabelen in het model
+ny = size(C, 1); % = 3 (drie gemeten waterstanden)</pre>
+
+<div class="page-break"></div>
+
+<!-- ══════════════ STAP 3 ══════════════ -->
+<h2 id="stap3">
+  <div class="step-header">
+    <span class="step-num">3</span>
+    <span class="step-title">R schatten uit het stationaire segment</span>
+  </div>
+</h2>
+
+<h3>Het principe</h3>
+
+<p>Meetsensorruis R is de makkelijkste van de twee om te schatten, omdat we hem direct in
+de data kunnen zien. Het idee is eenvoudig:</p>
+
+<div class="analogy">
+  <div class="analogy-title">Analogie: een lineaal aflezen</div>
+  Je legt een voorwerp op een lineaal en leest de lengte tien keer af. Je ziet elke keer
+  een iets andere waarde: 9,98 &mdash; 10,03 &mdash; 9,97 &mdash; 10,01 cm. Het object
+  beweegt niet, maar de aflezingen fluctueren licht door de onnauwkeurigheid van je oog
+  en de lineaal. De <em>variantie</em> van die fluctuaties is de meetsensorruis R.
+  Hetzelfde principe passen we toe op het waterstandssignaal.
+</div>
+
+<p>We kiezen een tijdsvenster waar het watersysteem nagenoeg stilstaat (quasi-stationair).
+In dat venster halen we de langzame trend weg met een voortschrijdend gemiddelde.
+Wat overblijft zijn de hoog-frequente fluctuaties &mdash; dat is puur meetsensorruis:</p>
+<div class="eq-block">
+$$R_{ii} \approx \mathrm{Var}\!\left[\,y_i(k) - \underbrace{\text{voortschrijdend gemiddelde van } y_i}_{\text{geschatte trend}}\,\right]$$
+</div>
+
+<p>Uit de data blijkt dat y&#8322; en y&#8323; stabiel zijn vanaf <strong>t &gt; 500 s</strong>.
+Voor y&#8321; is er nog een lichte dalende trend; de trendonttrekking compenseert dat automatisch.</p>
+
+<pre>win    = 51;                           % vensterlengte: 51 samples = 51 seconden
+trend  = movmean(y, win, 2);           % schat de langzame trend per kanaal
+resid  = y - trend;                    % residu = de hoog-frequente ruis
+
+idx_ss = find(t_1hz >= 500);          % gebruik alleen het stabiele segment
+R_est  = diag(var(resid(:, idx_ss), 0, 2));
+
+fprintf('R schatting (m^2):\n');
+disp(R_est)</pre>
+
+<p>Het resultaat <code>R_est</code> is een 3&times;3 diagonaalmatrix. De diagonaalelementen
+zijn de geschatte ruisvarianties van de drie sensoren in m&sup2;. Een typische waarde van
+\(10^{-5}\) m&sup2; komt overeen met een standaardafwijking van &asymp; 3&nbsp;mm &mdash;
+een realistisch getal voor een waterstandssensor.</p>
+
+<h3>Visuele verificatie</h3>
+<p>Maak altijd een plot van de residuen. Een correct resultaat ziet eruit als willekeurige
+ruis zonder zichtbare trend of regelmaat:</p>
+
+<pre>figure;
+for i = 1:3
+    subplot(3,1,i)
+    plot(t_1hz, resid(i,:))
+    yline(0, 'k--')
+    ylabel(sprintf('Residu y%d [m]', i))
+    title(sprintf('Meetsensorruis sensor %d', i))
+    grid on
+end
+xlabel('Tijd [s]')</pre>
+
+<div class="box orange">
+  <div class="box-title">Keuze van de vensterlengte</div>
+  Een venster van 51 samples filtert de langzame systeemtrend weg zonder de ruis zelf
+  te beïnvloeden. Als de residuen nog een zichtbare trend bevatten, vergroot dan het
+  venster. Als het venster te groot is, wordt de ruis zelf uitgemiddeld en onderschat je R.
+</div>
+
+<div class="page-break"></div>
+
+<!-- ══════════════ STAP 4 ══════════════ -->
+<h2 id="stap4">
+  <div class="step-header">
+    <span class="step-num">4</span>
+    <span class="step-title">Q schatten via het EM-algoritme</span>
+  </div>
+</h2>
+
+<h3 id="em-idee">6.1 Waarom hebben we EM nodig?</h3>
+
+<p>Q schatten is veel moeilijker dan R schatten, om één fundamentele reden:
+<strong>de toestand x is nooit direct meetbaar.</strong></p>
+
+<p>Q beschrijft de ruis op de toestandsovergang \(x(k+1) = A\,x(k) + w(k)\).
+Om Q te schatten heb je in principe de opeenvolgende toestanden \(x(k)\) en \(x(k+1)\)
+nodig, zodat je de afwijking van het model direct kunt berekenen. Maar de toestandsvector
+x is een verborgen, interne grootheid &mdash; we zien alleen \(y = C\,x + \text{ruis}\),
+een gedeeltelijke, ruizige observatie van x.</p>
+
+<div class="analogy">
+  <div class="analogy-title">Analogie: lichaamstemperatuur meten via een schaduw</div>
+  Stel je wilt weten hoe sterk de temperatuur in een kamer fluctueert, maar je hebt geen
+  thermometer. Je kunt alleen de schaduwlengte van een kaars meten &mdash; die hangt af van
+  de temperatuur, maar ook van tocht, luchtstroom, enzovoort. Je kunt de
+  temperatuurfluctuaties niet direct zien, maar door slim naar de schaduw te kijken kun
+  je er toch een schatting van maken. Het EM-algoritme doet precies dat: het schat de
+  verborgen toestandsfluctuaties (Q) uit de zichtbare, ruizige meetreeks (y).
+</div>
+
+<h3 id="em-stappen">6.2 Hoe werkt EM stap voor stap</h3>
+
+<p>Het <strong>Expectation-Maximisation (EM)-algoritme</strong> is een iteratieve methode
+die twee stappen steeds herhaalt totdat de schattingen niet meer veranderen:</p>
+
+<table>
+  <tr><th>Stap</th><th>Naam</th><th>Wat er gebeurt</th></tr>
+  <tr>
+    <td><strong>E-stap</strong></td>
+    <td>Expectation<br><em>(verwachting)</em></td>
+    <td>Gegeven de huidige schatting van Q en R: bereken de meest waarschijnlijke
+        toestandsgeschiedenis voor <em>alle</em> tijdstappen tegelijk via de
+        <strong>Kalman-smoother</strong> (zie §6.3). Het resultaat is een schatting
+        \(\hat{x}(k|N)\) voor elke tijdstap k, die gebruik maakt van
+        <em>alle</em> metingen van begin tot eind.</td>
+  </tr>
+  <tr>
+    <td><strong>M-stap</strong></td>
+    <td>Maximisation<br><em>(maximalisatie)</em></td>
+    <td>Gegeven de gesmoothe toestandsschatting: bereken analytisch de waarden van Q
+        en R die de kans op de geobserveerde data maximaliseren. Dit zijn
+        gesloten-vorm formules &mdash; geen optimalisatie nodig (zie §6.4).</td>
+  </tr>
+</table>
+
+<p>Na elke iteratie worden Q en R beter. Na typisch 10&ndash;30 iteraties convergeert
+het algoritme naar de <strong>maximum-likelihood schatting</strong>: de waarden van Q en R
+die de geobserveerde meetreeks het meest waarschijnlijk maken, gegeven het model.</p>
+
+<figure>
+<svg width="520" height="120" viewBox="0 0 520 120" xmlns="http://www.w3.org/2000/svg"
+     font-family="Arial, sans-serif" font-size="11">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#333"/>
+    </marker>
+  </defs>
+  <rect x="10"  y="30" width="130" height="50" rx="6" fill="#f0f4f8" stroke="#4a7cc7" stroke-width="1.5"/>
+  <rect x="185" y="30" width="150" height="50" rx="6" fill="#f0fff4" stroke="#2a7a4a" stroke-width="1.5"/>
+  <rect x="380" y="30" width="130" height="50" rx="6" fill="#f0f5ff" stroke="#4a7cc7" stroke-width="1.5"/>
+  <line x1="140" y1="55" x2="183" y2="55" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+  <line x1="335" y1="55" x2="378" y2="55" stroke="#333" stroke-width="1.5" marker-end="url(#arr)"/>
+  <path d="M 510 80 Q 510 105 260 105 Q 10 105 10 80" fill="none" stroke="#555"
+        stroke-width="1.5" marker-end="url(#arr)" stroke-dasharray="5,3"/>
+  <text x="260" y="118" text-anchor="middle" fill="#555" font-size="9">herhaal totdat Q en R niet meer veranderen (convergentie)</text>
+  <text x="75"  y="52" text-anchor="middle" font-weight="bold" fill="#0d2b5e">Initialisatie</text>
+  <text x="75"  y="67" text-anchor="middle" fill="#555">Q&#8320; klein, R = R_est</text>
+  <text x="260" y="50" text-anchor="middle" font-weight="bold" fill="#2a7a4a">E-stap</text>
+  <text x="260" y="64" text-anchor="middle" fill="#333">Kalman-smoother</text>
+  <text x="260" y="76" text-anchor="middle" fill="#555">&rarr; x&#770;(k|N) voor alle k</text>
+  <text x="445" y="50" text-anchor="middle" font-weight="bold" fill="#0d2b5e">M-stap</text>
+  <text x="445" y="64" text-anchor="middle" fill="#333">update Q en R</text>
+  <text x="445" y="76" text-anchor="middle" fill="#555">analytisch</text>
+</svg>
+<figcaption>Figuur 1 &mdash; EM-iteratielus: E- en M-stap wisselen af tot convergentie.</figcaption>
+</figure>
+
+<h3 id="rts">6.3 De Kalman-smoother (Rauch&ndash;Tung&ndash;Striebel)</h3>
+
+<p>Het gewone Kalman-filter schat de toestand op tijdstip k met alleen de metingen
+<em>tot en met</em> tijdstip k: \(\hat{x}(k|k)\). De <strong>smoother</strong> gaat
+verder: hij gebruikt <em>alle</em> metingen, ook die ná tijdstip k, om de toestand
+op k nauwkeuriger te schatten: \(\hat{x}(k|N)\).</p>
+
+<div class="analogy">
+  <div class="analogy-title">Analogie: een schip terugvinden op een radaropname</div>
+  Je wilt weten waar een schip om 12:00 precies was. Het normale Kalman-filter gebruikt
+  alleen radarbeelden van 10:00, 11:00 en 12:00. De smoother gebruikt ook die van 13:00
+  en 14:00: als het schip om 14:00 op een bekende positie aankomt, kun je terugrekenen
+  waar het om 12:00 moet zijn geweest. Die extra informatie geeft een nauwkeurigere
+  schatting &mdash; en betere invoer voor de M-stap.
+</div>
+
+<p>De smoother werkt in twee opeenvolgende passen:</p>
+
+<h4>Voorwaartse pass: standaard Kalman-filter (van vroeg naar laat)</h4>
+<div class="eq-block">
+$$\underbrace{\hat{x}(k|k{-}1)}_{\text{voorspelling}} = A\,\hat{x}(k{-}1|k{-}1)$$
+$$\underbrace{P(k|k{-}1)}_{\substack{\text{onzekerheid}\\\text{voorspelling}}} = A\,P(k{-}1|k{-}1)\,A^\top + Q$$
+$$\underbrace{e(k)}_{\text{innovatie}} = y(k) - C\,\hat{x}(k|k{-}1)$$
+$$\underbrace{K(k)}_{\text{Kalman-gain}} = P(k|k{-}1)\,C^\top \bigl[C\,P(k|k{-}1)\,C^\top + R\bigr]^{-1}$$
+$$\underbrace{\hat{x}(k|k)}_{\substack{\text{gecorrigeerde}\\\text{schatting}}} = \hat{x}(k|k{-}1) + K(k)\,e(k)$$
+$$P(k|k) = \bigl(I - K(k)C\bigr)\,P(k|k{-}1)\,\bigl(I - K(k)C\bigr)^\top + K(k)\,R\,K(k)^\top$$
+</div>
+<div class="formula-explain">
+  De <strong>innovatie</strong> \(e(k)\) is het verschil tussen meting en voorspelling:
+  de nieuwe informatie die de meting toevoegt.<br>
+  De <strong>Kalman-gain</strong> \(K(k)\) bepaalt hoeveel gewicht we geven aan die
+  nieuwe informatie: groot K = vertrouw de meting, klein K = vertrouw het model.
+</div>
+
+<h4>Achterwaartse smoothingpass: RTS (van laat naar vroeg)</h4>
+<div class="eq-block">
+$$G(k) = P(k|k)\,A^\top \bigl[P(k{+}1|k)\bigr]^{-1}$$
+$$\hat{x}(k|N) = \hat{x}(k|k) + G(k)\bigl[\hat{x}(k{+}1|N) - A\,\hat{x}(k|k)\bigr]$$
+$$P(k|N) = P(k|k) + G(k)\bigl[P(k{+}1|N) - P(k{+}1|k)\bigr]\,G(k)^\top$$
+$$P(k,k{-}1|N) = P(k|k)\,G(k{-}1)^\top + G(k)\bigl[P(k{+}1,k|N) - A\,P(k|k)\bigr]\,G(k{-}1)^\top$$
+</div>
+<div class="formula-explain">
+  \(G(k)\) is de <strong>smoother-gain</strong>: de terugwaartse correctiefactor per tijdstap,
+  die bepaalt hoeveel de toekomstige informatie de huidige schatting bijstelt.<br>
+  De <strong>kruiscovariantie</strong> \(P(k,k{-}1|N)\) beschrijft de statistische samenhang
+  tussen de toestand op opeenvolgende tijdstappen &mdash; benodigd in de M-stap.
+</div>
+
+<h3 id="mstap">6.4 De M-stap: Q en R analytisch updaten</h3>
+
+<p>Gegeven de gesmoothe toestandsschattingen berekenen we nieuwe Q en R door de
+log-likelihood te maximaliseren. Dit levert gesloten formules op, zodat er geen
+iteratieve optimalisatie nodig is binnen de M-stap zelf.</p>
+
+<p>We definiëren drie gesommeerde tweede-orde statistieken:</p>
+<div class="eq-block">
+$$S_{11} = \sum_{k=2}^{N} \Bigl[P(k|N) + \hat{x}(k|N)\,\hat{x}(k|N)^\top\Bigr]$$
+$$S_{10} = \sum_{k=2}^{N} \Bigl[P(k,k{-}1|N) + \hat{x}(k|N)\,\hat{x}(k{-}1|N)^\top\Bigr]$$
+$$S_{00} = \sum_{k=2}^{N} \Bigl[P(k{-}1|N) + \hat{x}(k{-}1|N)\,\hat{x}(k{-}1|N)^\top\Bigr]$$
+</div>
+<div class="formula-explain">
+  <strong>Intuïtie:</strong> S&#8321;&#8321; en S&#8320;&#8320; zijn maten voor de gemiddelde
+  kwadratische energie in de toestand op respectievelijk tijdstap k en k&minus;1.
+  S&#8321;&#8320; beschrijft de correlatie tussen opeenvolgende toestanden.
+  Samen bevatten ze alles wat nodig is om de procesruis te schatten.
+</div>
+
+<p>De nieuwe schattingen worden dan:</p>
+<div class="eq-block">
+$$\boxed{Q_\text{nieuw} = \frac{S_{11} - S_{10}\,A^\top - A\,S_{10}^\top + A\,S_{00}\,A^\top}{N-1}}$$
+$$\boxed{R_\text{nieuw} = \frac{1}{N}\sum_{k=1}^{N}\Bigl[\underbrace{\bigl(y(k) - C\hat{x}(k|N)\bigr)\bigl(\cdots\bigr)^\top}_{\text{gemiddelde kwadratische meetfout}} + \underbrace{C\,P(k|N)\,C^\top}_{\substack{\text{correctie voor onzekerheid}\\\text{in de toestandsschatting}}}\Bigr]}$$
+</div>
+<div class="formula-explain">
+  <strong>Q_nieuw:</strong> de gemiddelde kwadratische afwijking van de toestand ten
+  opzichte van wat het model voorspelde, gecorrigeerd voor de onzekerheid in de schatting zelf.<br><br>
+  <strong>R_nieuw:</strong> de gemiddelde kwadratische meetfout, gecorrigeerd voor het
+  feit dat \(\hat{x}(k|N)\) zelf ook een schatting is met bijbehorende onzekerheid \(P(k|N)\).
+  Zonder die correctie zou je R systematisch onderschatten.
+</div>
+
+<h4 id="sparse-q">6.4.1 Sparse structuur van Q: alleen de relevante toestanden</h4>
+
+<p>De algemene M-stap-formule levert een volledige 12&times;12 matrix op. Maar niet alle
+diagonaalelementen zijn zinvol: alleen de drie waterstandstoestanden worden in werkelijkheid
+verstoord door externe invloeden als regen, lekken en pompen. De overige negen toestanden
+zijn interne modeltoestanden die strikt het model volgen.</p>
+
+<table>
+  <tr><th>Positie</th><th>Fysische betekenis</th><th>Externe verstoring?</th></tr>
+  <tr><td><strong>1</strong></td><td>Waterstand pool 1</td><td>Ja &rarr; Q(1,1) zinvol schatten</td></tr>
+  <tr><td>2, 3, 4</td><td>Pad&eacute;-vertraging + actuator pool 1</td><td>Nee &rarr; stel in op 10<sup>&minus;8</sup></td></tr>
+  <tr><td><strong>5</strong></td><td>Waterstand pool 2</td><td>Ja &rarr; Q(5,5) zinvol schatten</td></tr>
+  <tr><td>6, 7, 8</td><td>Pad&eacute;-vertraging + actuator pool 2</td><td>Nee &rarr; stel in op 10<sup>&minus;8</sup></td></tr>
+  <tr><td><strong>9</strong></td><td>Waterstand pool 3</td><td>Ja &rarr; Q(9,9) zinvol schatten</td></tr>
+  <tr><td>10, 11, 12</td><td>Pad&eacute;-vertraging + actuator pool 3</td><td>Nee &rarr; stel in op 10<sup>&minus;8</sup></td></tr>
+</table>
+
+<div class="analogy">
+  <div class="analogy-title">Analogie: een thermostaat met verborgen onderdelen</div>
+  Een slimme thermostaat meet de kamertemperatuur, maar heeft intern ook elektronica
+  voor de vertraging van de verwarming. Als iemand een raam openzet, fluctueert de
+  kamertemperatuur &mdash; maar de interne elektronica niet. Als je voor alle interne
+  onderdelen even veel onzekerheid aanneemt als voor de kamertemperatuur, vertel je het
+  filter iets wat niet waar is. De sparse Q zegt: <em>alleen de kamertemperatuur kan
+  onverwacht veranderen door externe invloeden.</em>
+</div>
+
+<p>In de M-stap berekenen we Q_full zoals altijd, maar passen daarna de sparse structuur toe.
+Dit leidt tot een eenvoudiger formule met slechts drie vrije parameters:</p>
+
+<div class="eq-block">
+$$Q_\text{sparse}(i,i) = \begin{cases}
+    \max\!\bigl(Q_\text{full}(i,i),\; 10^{-8}\bigr) & \text{als } i \in \{1,\,5,\,9\} \\
+    10^{-8} & \text{anders}
+\end{cases}$$
+</div>
+<div class="formula-explain">
+  Dit noemen we een <strong>constrained EM</strong>: de data bepaalt de drie zinvolle
+  parameters, maar de negen interne toestanden worden niet vrij mee-geschat.
+  De vloerwaarde 10<sup>&minus;8</sup> (niet nul) is nodig om de covariatiematrix P
+  numeriek regulier te houden.
+</div>
+
+<div class="page-break"></div>
+
+<h3 id="code">6.5 MATLAB-implementatie</h3>
+
+<h4>kalman_smoother.m &mdash; herbruikbare hulpfunctie</h4>
+<pre>function [xs, Ps, Pcs] = kalman_smoother(A, C, Q, R, y, x0, P0)
+%KALMAN_SMOOTHER  Rauch-Tung-Striebel smoother.
+%   xs  : nx x N       gesmoothe toestandsschatting x(k|N)
+%   Ps  : nx x nx x N  gesmoothe covariantie P(k|N)
+%   Pcs : nx x nx x N-1  kruiscovariantie P(k,k-1|N)
+
+nx = size(A, 1);
+N  = size(y, 2);
+
+xf = zeros(nx, N);    Pf = zeros(nx, nx, N);
+xp = zeros(nx, N);    Pp = zeros(nx, nx, N);
+xf(:,1) = x0;  Pf(:,:,1) = P0;
+
+% Voorwaartse pass
+for k = 2:N
+    xp(:,k)   = A * xf(:,k-1);
+    Pp(:,:,k) = A * Pf(:,:,k-1) * A' + Q;
+    S         = C * Pp(:,:,k) * C' + R;
+    K         = Pp(:,:,k) * C' / S;
+    xf(:,k)   = xp(:,k) + K * (y(:,k) - C * xp(:,k));
+    IKC       = eye(nx) - K * C;
+    Pf(:,:,k) = IKC * Pp(:,:,k) * IKC' + K * R * K';
+end
+
+% Achterwaartse smoothingpass (RTS)
+xs = xf;  Ps = Pf;  Pcs = zeros(nx, nx, N-1);
+G_prev = zeros(nx);
+for k = N-1 : -1 : 1
+    G         = Pf(:,:,k) * A' / Pp(:,:,k+1);
+    xs(:,k)   = xf(:,k) + G * (xs(:,k+1) - xp(:,k+1));
+    Ps(:,:,k) = Pf(:,:,k) + G * (Ps(:,:,k+1) - Pp(:,:,k+1)) * G';
+    if k < N-1
+        Pcs(:,:,k) = Pf(:,:,k)*G_prev' + G*(Pcs(:,:,k+1) - A*Pf(:,:,k))*G_prev';
+    else
+        S_N        = C * Pp(:,:,N) * C' + R;
+        K_N        = Pp(:,:,N) * C' / S_N;
+        Pcs(:,:,k) = (eye(nx) - K_N*C) * A * Pf(:,:,N-1);
+    end
+    G_prev = G;
+end
+end</pre>
+
+<h4>schat_Q_R.m &mdash; hoofdscript</h4>
+<pre>% Sparse beginwaarden: waterpeilen niet-nul, interne toestanden 1e-8
+Q = 1e-8 * eye(nx);
+Q(1,1) = 1e-6;  Q(5,5) = 1e-6;  Q(9,9) = 1e-6;
+R  = R_est;                % beginwaarde uit Stap 3
+x0 = pinv(C) * y(:,1);    % schat begintoestand uit eerste meting
+P0 = eye(nx);              % grote beginonzekerheid (we weten x0 niet precies)
+
+for iter = 1:30
+    % E-stap: schat toestandsgeschiedenis met alle beschikbare metingen
+    [xs, Ps, Pcs] = kalman_smoother(A, C, Q, R, y, x0, P0);
+
+    % M-stap: bereken nieuwe Q
+    S11 = zeros(nx);  S10 = zeros(nx);  S00 = zeros(nx);
+    for k = 2:N
+        S11 = S11 + Ps(:,:,k)    + xs(:,k)   * xs(:,k)';
+        S10 = S10 + Pcs(:,:,k-1) + xs(:,k)   * xs(:,k-1)';
+        S00 = S00 + Ps(:,:,k-1)  + xs(:,k-1) * xs(:,k-1)';
+    end
+    Q_full = (S11 - S10*A' - A*S10' + A*S00*A') / (N-1);
+    % Sparse structuur: alleen waterstandstoestanden updaten
+    Q = 1e-8 * eye(nx);
+    for i = [1, 5, 9]
+        Q(i,i) = max(Q_full(i,i), 1e-8);
+    end
+
+    % M-stap: bereken nieuwe R
+    R_new = zeros(ny);
+    for k = 1:N
+        e     = y(:,k) - C * xs(:,k);
+        R_new = R_new + e*e' + C*Ps(:,:,k)*C';
+    end
+    R = diag(diag(R_new / N));   % diagonaal houden (sensoren zijn onafhankelijk)
+
+    fprintf('Iteratie %2d voltooid\n', iter);
+end
+
+Q_kal_final = Q;
+R_kal_final = R;
+save('data/Q_R_estimated.mat', 'Q_kal_final', 'R_kal_final');
+fprintf('Resultaat opgeslagen in data/Q_R_estimated.mat\n');</pre>
+
+<div class="box orange">
+  <div class="box-title">Rekentijd</div>
+  De smoother heeft \(\mathcal{O}(N \cdot n_x^2)\) rekencomplexiteit per iteratie.
+  Bij een grote toestandsdimensie kan dit enige tientallen seconden duren.
+  In de praktijk convergeert het al binnen 10&ndash;15 iteraties; 30 iteraties
+  geeft een ruime marge. De <code>fprintf</code>-uitvoer per iteratie laat zien
+  dat het script actief bezig is.
+</div>
+
+<div class="page-break"></div>
+
+<!-- ══════════════ STAP 5 ══════════════ -->
+<h2 id="stap5">
+  <div class="step-header">
+    <span class="step-num">5</span>
+    <span class="step-title">Validatie: zijn Q en R goed?</span>
+  </div>
+</h2>
+
+<p>Na het schatten van Q en R willen we weten of het resultaat kwalitatief goed is.
+De standaardmethode is de <strong>witheidstoets op de innovaties</strong>.</p>
+
+<h3>Wat zijn innovaties en waarom vertellen ze ons iets?</h3>
+
+<p>Bij elke tijdstap berekent het Kalman-filter het verschil tussen de werkelijke meting
+en de voorspelling van het model:</p>
+<div class="eq-block">
+$$e(k) = y(k) - C\,\hat{x}(k|k{-}1)$$
+</div>
+<p>Dit heet de <strong>innovatie</strong>: de nieuwe informatie die de meting toevoegt
+bovenop wat het model al wist.</p>
+
+<div class="analogy">
+  <div class="analogy-title">Analogie: een goed gecalibreerd weermodel</div>
+  Een weermodel dat perfect gekalibreerd is, maakt fouten die volledig willekeurig zijn:
+  soms te hoog, soms te laag, zonder enig patroon. Als de fouten een structuur vertonen
+  &mdash; bijvoorbeeld altijd te laag op maandag, of consistent te hoog in de ochtend
+  &mdash; dan mist het model iets. Hetzelfde geldt voor Kalman-filter innovaties:
+  als ze een patroon vertonen, zijn Q of R niet correct ingesteld.
+</div>
+
+<p>Een correct afgestemd Kalman-filter produceert <strong>witte ruis</strong>-innovaties:
+de innovatie op tijdstip k bevat geen informatie over de innovatie op tijdstip k&minus;1.
+Dit wordt de <em>witheidstoets</em> genoemd en gecontroleerd met de
+autocorrelatiefunctie (ACF).</p>
+
+<p>De <strong>autocorrelatie bij lag \(j\)</strong> meet de correlatie tussen
+\(e(k)\) en \(e(k-j)\). Voor witte ruis geldt:</p>
+<ul>
+  <li>Autocorrelatie bij lag 0 = 1 (een signaal correleert altijd perfect met zichzelf)</li>
+  <li>Autocorrelatie bij alle lag &ge; 1 &asymp; 0 (geen geheugen, geen structuur)</li>
+</ul>
+
+<pre>% Kalman-filter voorwaartse pass met de gevonden Q en R
+innov = zeros(ny, N);
+x_hat = x0;   P = P0;
+for k = 1:N
+    x_prior    = A * x_hat;
+    P_prior    = A * P * A' + Q_kal_final;
+    innov(:,k) = y(:,k) - C * x_prior;
+    S          = C * P_prior * C' + R_kal_final;
+    K          = P_prior * C' / S;
+    x_hat      = x_prior + K * innov(:,k);
+    IKC        = eye(nx) - K * C;
+    P          = IKC * P_prior * IKC' + K * R_kal_final * K';
+end
+
+% Witheidstoets: autocorrelatie van de innovaties per sensor
+figure('Name', 'Innovatie witheidstoets');
+for i = 1:3
+    subplot(3,1,i)
+    autocorr(innov(i,:), 'NumLags', 30)
+    title(sprintf('Innovatie autocorrelatie — sensor y%d', i))
+    grid on
+end</pre>
+
+<h3>Hoe de plots te interpreteren</h3>
+
+<table>
+  <tr><th>Wat je ziet in de plot</th><th>Betekenis</th><th>Actie</th></tr>
+  <tr>
+    <td>Alle pieken binnen de blauwe betrouwbaarheidsband (lag &ge; 1)</td>
+    <td><strong>Goed.</strong> Innovaties zijn wit ruis. Q en R zijn correct.</td>
+    <td>Ga door naar Stap 6.</td>
+  </tr>
+  <tr>
+    <td>Grote piek bij lag 1 of 2</td>
+    <td>Het filter mist kortetermijnstructuur in de data. Q is waarschijnlijk te klein.</td>
+    <td>Meer EM-iteraties draaien, of Q handmatig vergoten.</td>
+  </tr>
+  <tr>
+    <td>Langzaam afnemende autocorrelatie over veel lags</td>
+    <td>Het filter volgt de langzame trend niet goed. Mogelijk R te groot of model-mismatch.</td>
+    <td>Controleer de sensor-naar-pool mapping. Pas vensterlengte in Stap 3 aan.</td>
+  </tr>
+  <tr>
+    <td>Gemiddelde van de innovaties duidelijk niet nul</td>
+    <td>Systematische afwijking; waarschijnlijk een verkeerde beginschatting x0.</td>
+    <td>Verbeter de beginschatting of laat meer tijdstappen voorbijgaan voor de analyse.</td>
+  </tr>
+</table>
+
+<div class="box green">
+  <div class="box-title">Kort samengevat</div>
+  Als de autocorrelatieplots eruitzien als willekeurige ruis rond nul, zonder pieken
+  buiten de betrouwbaarheidsband, zijn Q en R goed genoeg voor gebruik in de digital twin.
+  Een enkele kleine overschrijding bij één sensor is acceptabel; systematische pieken
+  bij meerdere sensoren of bij lage lags wijzen op een fundamenteel probleem.
+</div>
+
+<!-- ══════════════ STAP 6 ══════════════ -->
+<h2 id="stap6">
+  <div class="step-header">
+    <span class="step-num">6</span>
+    <span class="step-title">Inbouwen in de twin</span>
+  </div>
+</h2>
+
+<p>Na een geslaagde validatie worden de geschatte Q en R opgeslagen als een
+<code>.mat</code>-bestand en geladen vanuit <code>twin_config.m</code>.
+De handmatige schaalwaarden worden volledig vervangen.</p>
+
+<h4>Aanpassing in twin_config.m</h4>
+<pre>% Vervang de twee handmatige regels:
+%   Q_kal_scale = 1e-4;
+%   R_kal_scale = 1e-3;
+%
+% Door het laden van de geschatte matrices:
+load(fullfile(fileparts(mfilename('fullpath')), ...
+     'data', 'Q_R_estimated.mat'), 'Q_kal_final', 'R_kal_final');</pre>
+
+<h4>Aanpassing in digital_twin.m en twin_update_hardware.m</h4>
+<pre>% Vervang de expansieregels:
+%   Q_kal = Q_kal_scale * eye(size(A,1));
+%   R_kal = R_kal_scale * eye(size(C,1));
+%
+% Door:
+Q_kal = Q_kal_final;
+R_kal = R_kal_final;</pre>
+
+<div class="box red">
+  <div class="box-title">Let op bij herstarten in hardware-modus</div>
+  In <code>twin_update_hardware.m</code> worden Q en R geladen tijdens de eerste aanroep.
+  Zorg dat <code>data/Q_R_estimated.mat</code> aanwezig is <em>voordat</em> de
+  hardware-callback geactiveerd wordt. Als het bestand ontbreekt, geeft MATLAB een
+  foutmelding bij het laden.
+</div>
+
+<div class="page-break"></div>
+
+<!-- ══════════════ 9. SAMENVATTING ══════════════ -->
+<h2 id="samenvatting">9. Samenvatting</h2>
+
+<table>
+  <tr><th>Stap</th><th>Wat</th><th>Methode</th><th>Output</th></tr>
+  <tr>
+    <td>1</td><td>Data voorbereiden</td>
+    <td>Interpolatie naar 1 Hz, cm &rarr; m</td>
+    <td><code>y</code> (3&times;N matrix)</td>
+  </tr>
+  <tr>
+    <td>2</td><td>Plantmodel laden</td>
+    <td>ZOH-discretisatie op 1 Hz</td>
+    <td>Matrices A, C</td>
+  </tr>
+  <tr>
+    <td>3</td><td>R schatten</td>
+    <td>Variantie van hoog-frequente ruis in stationair segment</td>
+    <td><strong>R</strong> (3&times;3 diagonaal, beginwaarde)</td>
+  </tr>
+  <tr>
+    <td>4</td><td>Q en R verfijnen</td>
+    <td>EM-algoritme met RTS-smoother, 30 iteraties</td>
+    <td><strong>Q</strong> (n&#x2093;&times;n&#x2093;), <strong>R</strong> verfijnd</td>
+  </tr>
+  <tr>
+    <td>5</td><td>Validatie</td>
+    <td>Autocorrelatie van Kalman-filter innovaties (witheidstoets)</td>
+    <td>Bevestiging kwaliteit</td>
+  </tr>
+  <tr>
+    <td>6</td><td>Inbouwen</td>
+    <td>Laden vanuit <code>.mat</code> in twin_config</td>
+    <td>Twin klaar voor gebruik</td>
+  </tr>
+</table>
+
+<h3>Literatuur</h3>
+<ul>
+  <li>R.H. Shumway &amp; D.S. Stoffer (1982). <em>An approach to time series smoothing and
+      forecasting using the EM algorithm.</em> Journal of Time Series Analysis,
+      3(4), 253&ndash;264.</li>
+  <li>R.E. Kalman (1960). <em>A new approach to linear filtering and prediction problems.</em>
+      Journal of Basic Engineering, 82(1), 35&ndash;45.</li>
+  <li>H.E. Rauch, F. Tung &amp; C.T. Striebel (1965). <em>Maximum likelihood estimates of
+      linear dynamic systems.</em> AIAA Journal, 3(8), 1445&ndash;1450.</li>
+</ul>
+
+</div><!-- .page -->
+</body>
+</html>
