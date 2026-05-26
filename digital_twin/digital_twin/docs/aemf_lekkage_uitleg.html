@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AEMF Lekkagefout­schatting — WIS Digitale Tweeling</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 11pt;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fff;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 40px 48px;
+  }
+
+  h1 { font-size: 22pt; color: #003366; border-bottom: 3px solid #003366; padding-bottom: 10px; margin-bottom: 6px; }
+  h2 { font-size: 15pt; color: #003366; margin-top: 36px; margin-bottom: 10px; border-left: 4px solid #0066cc; padding-left: 10px; }
+  h3 { font-size: 12pt; color: #004499; margin-top: 22px; margin-bottom: 6px; }
+
+  .meta { color: #555; font-size: 10pt; margin-bottom: 32px; }
+
+  p { margin-bottom: 10px; }
+  ul, ol { margin-left: 22px; margin-bottom: 10px; }
+  li { margin-bottom: 4px; }
+  strong { color: #003366; }
+
+  code {
+    font-family: "Consolas", "Courier New", monospace;
+    background: #f0f4f8;
+    border: 1px solid #ccd6e0;
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-size: 9.5pt;
+  }
+  pre {
+    font-family: "Consolas", "Courier New", monospace;
+    background: #f0f4f8;
+    border: 1px solid #ccd6e0;
+    border-radius: 5px;
+    padding: 14px 18px;
+    font-size: 9pt;
+    line-height: 1.5;
+    overflow-x: auto;
+    margin: 12px 0 16px 0;
+    white-space: pre;
+  }
+
+  .box {
+    border: 1px solid #b3c8e0;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 16px 0;
+    background: #f7fbff;
+  }
+  .box-yellow { border-color: #e0c060; background: #fffdf0; }
+  .box-green  { border-color: #70b870; background: #f4fbf4; }
+  .box-red    { border-color: #d07070; background: #fff5f5; }
+  .box-title  { font-weight: bold; color: #003366; font-size: 10.5pt; margin-bottom: 6px; display: block; }
+
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 10pt; }
+  th { background: #003366; color: white; padding: 8px 12px; text-align: left; }
+  td { padding: 7px 12px; border-bottom: 1px solid #dde8f0; vertical-align: top; }
+  tr:nth-child(even) td { background: #f7fbff; }
+
+  .compare { display: flex; gap: 16px; margin: 16px 0; }
+  .compare > div { flex: 1; padding: 14px; border-radius: 6px; font-size: 10pt; }
+  .compare .orig { background: #fff3e0; border: 1px solid #e0a040; }
+  .compare .wis  { background: #e8f5e9; border: 1px solid #60b060; }
+  .compare h4 { margin-top: 0; color: #333; font-style: normal; font-weight: bold; margin-bottom: 8px; }
+
+  .steps { counter-reset: step; }
+  .step { counter-increment: step; display: flex; gap: 16px; margin-bottom: 16px; align-items: flex-start; }
+  .step-num {
+    min-width: 36px; height: 36px; background: #003366; color: white;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-weight: bold; font-size: 13pt; flex-shrink: 0;
+  }
+  .step-body { flex: 1; padding-top: 4px; }
+
+  hr { border: none; border-top: 1px solid #ccd6e0; margin: 28px 0; }
+
+  @media print {
+    body { padding: 20px 28px; font-size: 10pt; max-width: 100%; }
+    h2 { page-break-after: avoid; }
+    h3 { page-break-after: avoid; }
+    pre, .box, table { page-break-inside: avoid; }
+    .compare { flex-direction: column; }
+    @page { margin: 2cm 2.5cm; }
+  }
+</style>
+</head>
+<body>
+
+<h1>AEMF Lekkagefout­schatting<br>in de WIS Digitale Tweeling</h1>
+<p class="meta">
+  Bachelor Eindproject (BEP) &mdash; TU Delft &nbsp;|&nbsp;
+  Auteur: Maurits Bloys &nbsp;|&nbsp;
+  Datum: mei 2026 &nbsp;|&nbsp;
+  Gebaseerd op: Gleizer, Mohajerin Esfahani &amp; Keviczky (2024)
+</p>
+
+<div class="box box-yellow">
+  <span class="box-title">Over dit document</span>
+  Dit document legt uit hoe de <em>Active Estimation of Multiplicative Faults</em> (AEMF) methode
+  is toegepast op de WIS-laboratoriumopstelling. Het is bedoeld voor lezers die het project voor
+  het eerst zien. Alle wiskunde wordt stap voor stap opgebouwd. Basiskennis van regeltechniek
+  (toestandsruimte, Kalman-filter) is voldoende.<br><br>
+  <strong>PDF maken:</strong> open dit bestand in een browser &rarr; Ctrl+P &rarr; "Opslaan als PDF".
+</div>
+
+<hr>
+
+<h2>1 &nbsp; De laboratoriumopstelling</h2>
+
+<p>De WIS-opstelling bestaat uit <strong>drie waterbassins in serie</strong>. Water stroomt
+van bassin 0 (bovenstroomse bak, vast peil h<sub>0</sub> = 0.30 m) via sluizen naar
+bassin 1, 2 en 3. De sluizen worden aangestuurd door servo-motoren (0&ndash;255 eenheden).</p>
+
+<table>
+  <tr><th>Grootheid</th><th>Symbool</th><th>Waarde / beschrijving</th></tr>
+  <tr><td>Aantal bassins</td><td>&mdash;</td><td>3 (plus bak 0 als bron)</td></tr>
+  <tr><td>Toestanden per bassin</td><td>&mdash;</td><td>4: waterstand, debiet, sluispositie, actuator</td></tr>
+  <tr><td>Totale toestandsvector</td><td><code>x</code></td><td>12 &times; 1</td></tr>
+  <tr><td>Ingangen (regelaar)</td><td><code>u</code></td><td>3 sluisopeningen [Cantoni-eenheden 0&ndash;0.5]</td></tr>
+  <tr><td>Uitgangen (sensoren)</td><td><code>y</code></td><td>3 waterstandmetingen [m]</td></tr>
+  <tr><td>Setpoints</td><td><code>y_ref</code></td><td>[0.25; 0.20; 0.15] m</td></tr>
+  <tr><td>Bemonsteringsfrequentie</td><td>&mdash;</td><td>1 Hz</td></tr>
+</table>
+
+<p>Elke seconde voert de digitale tweeling &eacute;&eacute;n lus uit:</p>
+<ol>
+  <li>Meet waterpeilen via sensoren (of simuleer ze intern)</li>
+  <li>Voer een <strong>Kalman-filterupdate</strong> uit om de toestand te schatten</li>
+  <li>Bereken het <strong>MPC-regelcommando</strong> om de peilen naar setpoint te sturen</li>
+  <li>Stuur het commando naar de sluizen (of sla op in simulatie)</li>
+  <li><strong>Nieuw:</strong> schat of de lekkage afwijkt van het model (AEMF)</li>
+</ol>
+
+<hr>
+
+<h2>2 &nbsp; Het lekkagemodel</h2>
+
+<p>Elke sluis is nooit volledig dicht: er lekt altijd een kleine hoeveelheid water door.
+Dit lekkage is empirisch bepaald en beschreven door de formule:</p>
+
+<div class="box">
+  <strong>Lekkageformule per kanaal j</strong> &mdash; <code>wis_leakage.m</code><br><br>
+  <code>q<sub>j</sub> [cm&sup3;/s] = &alpha;<sub>j</sub> &middot; &radic;(&Delta;h &middot; 100) + &beta;<sub>j</sub> &middot; (&Delta;h &middot; 100)<sup>3/2</sup></code>
+  <br><br>
+  waarbij <code>&Delta;h = h<sub>bovenstrooms</sub> &minus; h<sub>j</sub></code> het hoogteverschil in meters is.
+  De formule beschrijft turbulentstromend water door een smalle opening: de wortelterm domineert bij
+  kleine hoogteverschillen, de 3/2-term bij grotere.
+</div>
+
+<table>
+  <tr><th>Kanaal j</th><th>&alpha;<sub>j</sub> [cm<sup>3/2</sup>/s]</th><th>&beta;<sub>j</sub> [cm<sup>5/2</sup>/s]</th><th>Verbinding</th></tr>
+  <tr><td>1</td><td>39.617</td><td>0.328</td><td>Bak 0 &rarr; Bassin 1</td></tr>
+  <tr><td>2</td><td>9.402</td><td>0.162</td><td>Bassin 1 &rarr; Bassin 2</td></tr>
+  <tr><td>3</td><td>40.310</td><td>0.559</td><td>Bassin 2 &rarr; Bassin 3</td></tr>
+</table>
+
+<h3>2.1 &nbsp; Wat is een multiplicatieve fout?</h3>
+
+<p>Na verloop van tijd kan de lekkage veranderen door slijtage, verstopping of vervorming
+van de sluisafdichting. De werkelijke lekkage wijkt dan af van het model:</p>
+
+<div class="box">
+  <code>q<sub>j,werkelijk</sub> = (1 + c<sub>j</sub>) &middot; q<sub>j,nominaal</sub>(h)</code>
+  <br><br>
+  <ul>
+    <li><code>c<sub>j</sub> = 0</code> &nbsp;&rarr;&nbsp; lekkage klopt precies met het model</li>
+    <li><code>c<sub>j</sub> = +0.20</code> &nbsp;&rarr;&nbsp; 20% meer lekkage dan verwacht (slijtage)</li>
+    <li><code>c<sub>j</sub> = &minus;0.10</code> &nbsp;&rarr;&nbsp; 10% minder lekkage (gedeeltelijke verstopping)</li>
+  </ul>
+</div>
+
+<p>De factor <code>(1 + c<sub>j</sub>)</code> schaalt zowel &alpha; als &beta; gelijk, omdat beide
+termen proportioneel zijn aan de grootte van de doorstroomopening. Dit heet een
+<em>multiplicatieve</em> fout: de fout vermenigvuldigt het nominale model, in plaats van er een
+vaste waarde bij op te tellen (dat zou een <em>additieve</em> fout zijn).</p>
+
+<p>Het doel van de AEMF-implementatie is: de onbekende fouten
+<code>c<sub>1</sub>, c<sub>2</sub>, c<sub>3</sub></code> schatten
+uit de beschikbare sensordata, <strong>zonder de hardware te demonteren</strong>.</p>
+
+<hr>
+
+<h2>3 &nbsp; Het originele AEMF-project (TU Delft, 2024)</h2>
+
+<p>De AEMF-codebase is een open-source MATLAB/Simulink-bibliotheek gepubliceerd door TU Delft
+(Gleizer, Mohajerin Esfahani &amp; Keviczky, 2024). Het is ontworpen voor een
+<em>kar-pendulum</em> systeem maar beschrijft een algemeen toepasbare methode voor
+multiplicatieve foutschatting in lineaire dynamische systemen.</p>
+
+<h3>3.1 &nbsp; Wat doet het originele project?</h3>
+
+<div class="steps">
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <strong>Filterontwerp</strong> &mdash; <code>generate_filter_parameters.m</code><br>
+      Ontwerp een dynamisch filter N(z) dat de residuals (innovaties) filtert zodat
+      multiplicatieve fouten maximaal onderscheidbaar worden. Werkt met de
+      <code>MatrixPolynomial</code>-klasse en Toeplitz-matrices. Vereist de Control Systems Toolbox.
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <strong>Optimale ingangsontwikkeling</strong> &mdash; <code>grad_descent_loop.m</code>, <code>run_sdp_relaxation.m</code><br>
+      Ontwerp een optimaal ingangsignaal dat de kleinste singuliere waarde
+      &sigma;<sub>min</sub>(<strong>E</strong>) maximaliseert, zodat de fouten beter scheidbaar zijn.
+      Dit is de "actieve" kant van AEMF: de regelaar beinvloedt actief de observeerbaarheid van fouten.
+      Vereist CVX (convex optimalisatiepakket).
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <strong>Foutschatting</strong> &mdash; <code>run_and_process_simulation.m</code>, regels 8&ndash;15<br>
+      De daadwerkelijke schatting: bouw een regressormatrix <strong>E</strong> op uit een
+      sliding window van residuals en los het kleinste-kwadratenprobleem op.
+      Dit zijn slechts vier regels code en vormt de <strong>kern</strong> van het algoritme.
+    </div>
+  </div>
+</div>
+
+<h3>3.2 &nbsp; De kernformule: vier regels uit het originele project</h3>
+
+<p>Alles wat daadwerkelijk de schatting uitvoert staat in
+<code>run_and_process_simulation.m</code>, regels 8&ndash;15:</p>
+
+<pre>for i = 1:length(s1)
+    Ei = E(i : i+N*NN-1, :);      % sliding window van regressormatrix
+    Ri = r(i : i+N*NN-1, :);      % bijbehorende residuals (innovaties)
+    s1(i)     = min(svd(Ei))^2;   % observeerbaarheidsmaat sigma_min^2
+    fhat(i,:) = pinv(Ei) * Ri;    % kleinste-kwadraten schatting van fout
+end</pre>
+
+<p>De rest van de AEMF-codebase (&gt;600 regels verdeeld over ~20 bestanden) is gericht op
+het optimaal opbouwen van <strong>E</strong> via filterontwerp en ingangsontwikkeling.
+In ons project is dat niet nodig &mdash; zie paragraaf 5.2.</p>
+
+<hr>
+
+<h2>4 &nbsp; Wiskundige vertaling naar het WIS-systeem</h2>
+
+<h3>4.1 &nbsp; De innovatie als detectiesignaal</h3>
+
+<p>Het Kalman-filter berekent elke tijdstap de <strong>innovatie</strong>: het verschil
+tussen de gemeten en de voorspelde waterstand.</p>
+
+<div class="box">
+  <code>innov[k] = y_meas[k] &minus; C &middot; x_hat_predicted[k]</code>
+  <br><br>
+  Als het model perfect klopt, heeft de innovatie gemiddeld nul (puur meetruis).
+  Als er een lekkagefout aanwezig is, verschijnt er een <strong>systematische bias</strong>
+  in de innovatie: het water staat structureel lager of hoger dan het model verwacht.
+</div>
+
+<p>Waarom? Omdat het Kalman-filter de lekkagecorrectie berekent met de <em>nominale</em>
+&alpha; en &beta;. Als de werkelijke lekkage groter is, verdwijnt er meer water dan het model
+verwacht, waardoor de gemeten waterstand structureel lager uitkomt dan de voorspelling.
+Die systematische afwijking is precies wat we willen detecteren.</p>
+
+<h3>4.2 &nbsp; Hoe de lekkagefout de innovatie beinvloedt</h3>
+
+<p>De lekkage wordt verrekend in de toestandsupdate via de vector <strong>d</strong>
+(berekend in <code>twin_compute_leakage.m</code>):</p>
+
+<pre>d(wl_idx(1)) = (q1 - q2) / area1   % netto waterstandverandering bassin 1 [m/stap]
+d(wl_idx(2)) = (q2 - q3) / area2   % netto waterstandverandering bassin 2
+d(wl_idx(3)) =  q3       / area3   % netto waterstandverandering bassin 3</pre>
+
+<p>Als kanaal j een fout <code>c<sub>j</sub></code> heeft, verandert q<sub>j</sub>
+met een factor <code>(1 + c<sub>j</sub>)</code>. Het verschil ten opzichte van het nominale
+model &mdash; de <em>extra bijdrage aan de innovatie</em> &mdash; is:</p>
+
+<div class="box">
+  <code>innov_extra[k] &asymp; C &middot; &sum;<sub>j=1</sub><sup>3</sup> c<sub>j</sub> &middot; &Delta;d<sub>j</sub>(h_est[k])</code>
+  <br><br>
+  Dit is <strong>lineair</strong> in de onbekende fouten c<sub>j</sub>: precies de
+  structuur die AEMF exploiteert via een kleinste-kwadratenoplossing.
+</div>
+
+<h3>4.3 &nbsp; De regressorvectoren &Delta;d<sub>j</sub></h3>
+
+<p>Voor elk kanaal j berekenen we de per-eenheidsverandering in de lekkagecorrectievector
+als die fout 1 zou zijn (<code>c<sub>j</sub> = 1</code>). Na vermenigvuldiging met de meetmatrix
+C geeft dit drie kolommen van onze regressormatrix:</p>
+
+<table>
+  <tr><th>Kanaal j</th><th>C &middot; &Delta;d<sub>j</sub> (3&times;1 vector)</th><th>Fysische betekenis</th></tr>
+  <tr>
+    <td>j = 1</td>
+    <td><code>[+q<sub>1</sub>/area<sub>1</sub>, 0, 0]</code></td>
+    <td>Extra lekkage kanaal 1 raakt alleen bassin 1</td>
+  </tr>
+  <tr>
+    <td>j = 2</td>
+    <td><code>[&minus;q<sub>2</sub>/area<sub>1</sub>, +q<sub>2</sub>/area<sub>2</sub>, 0]</code></td>
+    <td>Extra lekkage kanaal 2: bassin 1 verliest, bassin 2 wint</td>
+  </tr>
+  <tr>
+    <td>j = 3</td>
+    <td><code>[0, &minus;q<sub>3</sub>/area<sub>2</sub>, +q<sub>3</sub>/area<sub>3</sub>]</code></td>
+    <td>Extra lekkage kanaal 3: bassin 2 verliest, bassin 3 wint</td>
+  </tr>
+</table>
+
+<h3>4.4 &nbsp; De regressormatrix E en de schatting</h3>
+
+<p>Over een sliding window van K = 20 tijdstappen bouwen we de matrix
+<strong>E</strong> &isin; &reals;<sup>3K &times; 3</sup>. Elke drie rijen corresponderen
+met &eacute;&eacute;n tijdstap; elke kolom met &eacute;&eacute;n lekkagekanaal:</p>
+
+<pre>E((k-1)*3+1 : k*3,  1) = C * dd1   % bijdrage kanaal 1 op innovatie, tijdstap k
+E((k-1)*3+1 : k*3,  2) = C * dd2   % bijdrage kanaal 2 op innovatie, tijdstap k
+E((k-1)*3+1 : k*3,  3) = C * dd3   % bijdrage kanaal 3 op innovatie, tijdstap k</pre>
+
+<p>De innovatievector <strong>r</strong> &isin; &reals;<sup>3K</sup> bevat alle innovaties
+platgeslagen: <code>r = innov_hist(:)</code>.</p>
+
+<p>Het stelsel <code>E &middot; c = r</code> is <em>overdetermined</em>
+(60 vergelijkingen, 3 onbekenden), dus we lossen op in de kleinste-kwadratenzin:</p>
+
+<div class="box">
+  <strong>Schatformule (identiek aan AEMF-kern):</strong><br><br>
+  <code><strong>c_hat = pinv(E) &middot; r</strong></code>
+  <br><br>
+  In het originele AEMF-project: <code>fhat = pinv(Ei) * Ri</code> &mdash; exact dezelfde operatie,
+  maar dan met de WIS-specifieke lekkageformules in E in plaats van kar-pendulum matrices.
+</div>
+
+<h3>4.5 &nbsp; Observeerbaarheidsmaat</h3>
+
+<p>Als de waterpeilen vrijwel stilstaan (dicht bij setpoint, weinig dynamiek), zijn alle
+kolommen van <strong>E</strong> bijna evenredig. De lekkagekanalen zijn dan niet goed
+onderscheidbaar. We meten dit met de kleinste singuliere waarde:</p>
+
+<div class="box">
+  <code>&sigma;<sub>min</sub>(<strong>E</strong>)<sup>2</sup> &lt; 10<sup>&minus;6</sup></code>
+  &nbsp;&rarr;&nbsp; onvoldoende observeerbaarheid &rarr;&nbsp; <code>c_hat = NaN</code>
+  (geen betrouwbare schatting mogelijk)
+</div>
+
+<hr>
+
+<h2>5 &nbsp; Origineel AEMF versus WIS-implementatie</h2>
+
+<div class="compare">
+  <div class="orig">
+    <h4>Origineel AEMF-project (TU Delft)</h4>
+    <ul>
+      <li>Systeem: kar-pendulum (lineair DAE)</li>
+      <li>Werkt via Simulink Real-Time</li>
+      <li>Vereist CVX voor optimale ingangsontwerp</li>
+      <li>Filterontwerp N(z) met MatrixPolynomial</li>
+      <li>Toeplitz-matrices voor convolutie-structuur</li>
+      <li>Actief ingangsontwerp om &sigma;<sub>min</sub> te maximaliseren</li>
+      <li>Noiseless en ruis scenarios vergeleken</li>
+      <li>&gt;600 regels, ~20 bestanden</li>
+    </ul>
+  </div>
+  <div class="wis">
+    <h4>WIS-implementatie (dit project)</h4>
+    <ul>
+      <li>Systeem: 3-basin wateropstelling (niet-lineaire lekkage)</li>
+      <li>Werkt in bestaande MATLAB Kalman-lus, geen Simulink</li>
+      <li>Geen CVX nodig</li>
+      <li>Geen filterontwerp &mdash; innovaties direct gebruikt</li>
+      <li>Regressoropbouw via WIS-lekkageformules</li>
+      <li>Ingang bepaald door MPC, niet door AEMF</li>
+      <li>Werkt in simulatie- en hardwaremodus</li>
+      <li>~80 regels in &eacute;&eacute;n nieuw bestand</li>
+    </ul>
+  </div>
+</div>
+
+<h3>5.1 &nbsp; Wat exact is overgenomen uit AEMF</h3>
+
+<table>
+  <tr><th>AEMF-element</th><th>Origineel bestand</th><th>Status in WIS</th></tr>
+  <tr>
+    <td>Kern-schatformule: <code>fhat = pinv(E) * R</code></td>
+    <td><code>run_and_process_simulation.m</code>, r.14</td>
+    <td><strong style="color:#2a7a2a">Overgenomen en aangepast</strong></td>
+  </tr>
+  <tr>
+    <td>Observeerbaarheidsmaat: <code>min(svd(E))^2</code></td>
+    <td><code>run_and_process_simulation.m</code>, r.13</td>
+    <td><strong style="color:#2a7a2a">Identiek overgenomen</strong></td>
+  </tr>
+  <tr>
+    <td>Sliding window structuur over K tijdstappen</td>
+    <td><code>run_and_process_simulation.m</code>, r.10&ndash;15</td>
+    <td><strong style="color:#2a7a2a">Overgenomen en aangepast</strong></td>
+  </tr>
+  <tr>
+    <td>Filterontwerp N(z)</td>
+    <td><code>generate_filter_parameters.m</code></td>
+    <td><strong style="color:#cc4400">Niet gebruikt</strong></td>
+  </tr>
+  <tr>
+    <td>Optimale ingangsontwikkeling</td>
+    <td><code>grad_descent_loop.m</code>, <code>run_sdp_relaxation.m</code></td>
+    <td><strong style="color:#cc4400">Niet gebruikt</strong></td>
+  </tr>
+  <tr>
+    <td>MatrixPolynomial klasse</td>
+    <td><code>MatrixPolynomial.m</code></td>
+    <td><strong style="color:#cc4400">Niet gebruikt</strong></td>
+  </tr>
+  <tr>
+    <td>Simulink-simulatie</td>
+    <td><code>simulation.slx</code></td>
+    <td><strong style="color:#cc4400">Niet gebruikt</strong></td>
+  </tr>
+</table>
+
+<h3>5.2 &nbsp; Waarom de rest niet nodig is</h3>
+
+<div class="box box-yellow">
+  <span class="box-title">Ontwerpkeuze: geen filterontwerp of optimale ingang</span>
+  In het originele AEMF-project worden de filters en ingang <em>actief ontworpen</em> om
+  de observeerbaarheid te maximaliseren. Dit is noodzakelijk wanneer het systeem van nature
+  weinig dynamiek heeft (bijv. een kar die stilstaat).<br><br>
+  In de WIS-opstelling zorgt de MPC-regelaar al voor continue sluisbewegingen, waardoor
+  de waterpeilen constant fluctueren en de regressormatrix E al voldoende geconditioneerd is.
+  Het volledige filter-ontwerp levert geen significante verbetering voor deze toepassing
+  en zou CVX en Simulink vereisen die niet in de bestaande digitale tweeling beschikbaar zijn.
+</div>
+
+<hr>
+
+<h2>6 &nbsp; De implementatie in detail</h2>
+
+<h3>6.1 &nbsp; Overzicht gewijzigde bestanden</h3>
+
+<table>
+  <tr><th>Bestand</th><th>Type</th><th>Wijziging / rol</th></tr>
+  <tr>
+    <td><code>twin_estimate_leakage_faults.m</code></td>
+    <td>Nieuw</td>
+    <td>AEMF-kern: bouwt E, berekent c_hat en &sigma;<sub>min</sub> uit de sliding window</td>
+  </tr>
+  <tr>
+    <td><code>digital_twin.m</code></td>
+    <td>Uitgebreid</td>
+    <td>AEMF-buffers toegevoegd, schatter aangeroepen na Kalman-update, histories doorgegeven aan plots</td>
+  </tr>
+  <tr>
+    <td><code>twin_update_hardware.m</code></td>
+    <td>Uitgebreid</td>
+    <td>Zelfde AEMF-logica maar als persistent-state callback voor hardware PSTC-modus</td>
+  </tr>
+  <tr>
+    <td><code>twin_plot_init.m</code></td>
+    <td>Uitgebreid</td>
+    <td>Figuur 8 aangemaakt met twee subplots: lekkageflow en effectieve &alpha;</td>
+  </tr>
+  <tr>
+    <td><code>twin_plot_update.m</code></td>
+    <td>Uitgebreid</td>
+    <td>Live refresh van Figuur 8 elke tijdstap, backwards-compatible via nargin-check</td>
+  </tr>
+</table>
+
+<h3>6.2 &nbsp; Algoritmestroom per tijdstap</h3>
+
+<div class="steps">
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <strong>Dataverzameling</strong><br>
+      Hardware: lees sensoren via Flask API (of seri&euml;le poort).<br>
+      Simulatie: bereken waterpeilen intern via het plantmodel.
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <strong>Kalman-filter update</strong> &mdash; <code>twin_kalman_update.m</code><br>
+      Bereken de innovatie <code>innov = y_meas &minus; C &middot; x_prior</code>.
+      Update de toestandsschatting x_hat. De innovatie bevat de informatie over lekkagefouten.
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <strong>Sliding window bijwerken</strong><br>
+      <pre>innov_buf = [innov_buf(:, 2:end), innov]     % schuif innovatiebuffer
+hest_buf  = [hest_buf(:, 2:end),  h_est_abs]  % schuif peilbuffer</pre>
+      Het venster bevat altijd de laatste 20 tijdstappen.
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">4</div>
+    <div class="step-body">
+      <strong>Nominale lekkageflow berekenen</strong><br>
+      Bereken q<sub>1</sub>, q<sub>2</sub>, q<sub>3</sub> met de huidige geschatte waterpeilen
+      en de nominale &alpha;, &beta; uit <code>wis_properties.m</code>.
+      Dit zijn de "verwachte" lekkagestromen als het model klopt.
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">5</div>
+    <div class="step-body">
+      <strong>AEMF-schatting uitvoeren</strong> (na stap 20, zodra buffer vol is)<br>
+      Roep <code>twin_estimate_leakage_faults</code> aan. Deze functie:<br>
+      (a) bouwt de regressormatrix E op,<br>
+      (b) berekent <code>c_hat = pinv(E) * r</code>,<br>
+      (c) controleert of &sigma;<sub>min</sub><sup>2</sup> &gt; 10<sup>&minus;6</sup>.
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">6</div>
+    <div class="step-body">
+      <strong>Geschatte lekkageflow berekenen</strong><br>
+      <code>q_hat = q_nom .* (1 + c_hat)</code><br>
+      En de effectieve alfa: <code>&alpha;_eff = &alpha;_nom .* (1 + c_hat)</code>
+    </div>
+  </div>
+  <div class="step">
+    <div class="step-num">7</div>
+    <div class="step-body">
+      <strong>Figuur 8 bijwerken</strong> &mdash; <code>twin_plot_update.m</code><br>
+      Subplot boven: q_nom (stippel) vs q_hat (doorgetrokken) per kanaal.<br>
+      Subplot onder: nominale &alpha; (stippel) vs effectieve &alpha; (doorgetrokken) per kanaal.
+    </div>
+  </div>
+</div>
+
+<h3>6.3 &nbsp; Geannoteerde broncode: <code>twin_estimate_leakage_faults.m</code></h3>
+
+<pre>function [c_hat, sigma_min] = twin_estimate_leakage_faults( ...
+    innov_hist, h_est_hist, Wis, wl_idx, C, n_states)
+% Inputs:
+%   innov_hist  [3 x K]  innovatiegeschiedenis (laatste K=20 stappen)
+%   h_est_hist  [3 x K]  geschatte absolute waterpeilen [m]
+%   Wis                  lekkage-struct (alpha, beta, oppervlaktes)
+%   wl_idx      [3 x 1]  indices van waterpeilen in de toestandsvector
+%   C           [3 x 12] meetmatrix
+%   n_states    12       totale dimensie toestandsvector
+%
+% Outputs:
+%   c_hat       [3 x 1]  multiplicatieve foutschatting per kanaal
+%   sigma_min            observeerbaarheidsmaat sigma_min(E)^2
+
+K     = size(innov_hist, 2);
+E     = zeros(3*K, 3);      % regressormatrix: 3K rijen, 3 kolommen (kanalen)
+r_vec = innov_hist(:);      % innovatievector 3K x 1, platgeslagen
+
+for k = 1:K
+    h = h_est_hist(:, k);   % geschatte waterpeilen op tijdstap k
+
+    % Bereken nominale lekkagestromen [m^3/s]
+    q1 = wis_leakage(Wis.h0, h(1), Wis.leak_alpha(1), Wis.leak_beta(1));
+    q2 = wis_leakage(h(1),   h(2), Wis.leak_alpha(2), Wis.leak_beta(2));
+    q3 = wis_leakage(h(2),   h(3), Wis.leak_alpha(3), Wis.leak_beta(3));
+
+    % Per-eenheid effect van fout c_j op lekkagecorrectievector [m/stap]
+    % (delta_d_j = verandering in d als c_j = 1)
+    dd1 = zeros(n_states,1);
+    dd1(wl_idx(1)) =  q1/Wis.area1;      % kanaal 1 raakt alleen bassin 1
+
+    dd2 = zeros(n_states,1);
+    dd2(wl_idx(1)) = -q2/Wis.area1;      % kanaal 2: bassin 1 verliest water
+    dd2(wl_idx(2)) =  q2/Wis.area2;      %           bassin 2 wint water
+
+    dd3 = zeros(n_states,1);
+    dd3(wl_idx(2)) = -q3/Wis.area2;      % kanaal 3: bassin 2 verliest water
+    dd3(wl_idx(3)) =  q3/Wis.area3;      %           bassin 3 wint water
+
+    % Vul rijen van E: bijdrage van elke fout op de 3 sensormetingen
+    row = (k-1)*3+1 : k*3;
+    E(row, 1) = C * dd1;
+    E(row, 2) = C * dd2;
+    E(row, 3) = C * dd3;
+end
+
+% Verwijder rijen met NaN (buffer nog niet vol)
+valid = ~any(isnan(E), 2) &amp; ~isnan(r_vec);
+if sum(valid) &lt; 3
+    c_hat = nan(3,1); sigma_min = 0; return;
+end
+
+% Kleinste-kwadraten schatting (AEMF-kernformule)
+c_hat     = pinv(E(valid,:)) * r_vec(valid);
+sigma_min = min(svd(E(valid,:)))^2;
+
+if sigma_min &lt; 1e-6
+    c_hat = nan(3,1);   % onvoldoende observeerbaarheid
+end</pre>
+
+<hr>
+
+<h2>7 &nbsp; De plots: wat je ziet en hoe je het interpreteert</h2>
+
+<h3>Figuur 8, subplot boven: Lekkageflow per kanaal [cm&sup3;/s]</h3>
+
+<table>
+  <tr><th>Lijn</th><th>Beschrijving</th></tr>
+  <tr>
+    <td>Stippellijn (blauw/rood/groen)</td>
+    <td><strong>Nominale</strong> lekkageflow q<sub>j,nom</sub> &mdash; berekend met originele &alpha;, &beta; en huidige peilschatting</td>
+  </tr>
+  <tr>
+    <td>Doorgetrokken lijn</td>
+    <td><strong>Geschatte werkelijke</strong> lekkageflow q<sub>j,hat</sub> = (1 + c_hat<sub>j</sub>) &middot; q<sub>j,nom</sub></td>
+  </tr>
+</table>
+
+<div class="box box-green">
+  <span class="box-title">Goed geval: geen fout</span>
+  Doorgetrokken en stippellijnen liggen op elkaar. De lekkage klopt met het gecalibreerde model.
+  <code>c_hat &asymp; [0, 0, 0]</code>.
+</div>
+
+<div class="box box-red">
+  <span class="box-title">Probleem gedetecteerd: fout op kanaal 1</span>
+  De blauwe doorgetrokken lijn ligt 20% boven de blauwe stippellijn. Kanaal 1 lekt meer dan
+  verwacht. Mogelijke oorzaak: slijtage van de rubberen afdichting. <code>c_hat(1) &asymp; 0.20</code>.
+</div>
+
+<h3>Figuur 8, subplot onder: Effectieve &alpha; per kanaal</h3>
+
+<table>
+  <tr><th>Element</th><th>Beschrijving</th></tr>
+  <tr>
+    <td>Stippellijn (horizontaal, per kleur)</td>
+    <td>Nominale &alpha;<sub>j</sub> uit <code>wis_properties.m</code> (de ijkwaarde)</td>
+  </tr>
+  <tr>
+    <td>Doorgetrokken lijn</td>
+    <td>Effectieve &alpha;<sub>eff,j</sub> = &alpha;<sub>j,nom</sub> &middot; (1 + c_hat<sub>j</sub>)</td>
+  </tr>
+</table>
+
+<p>Een lijn die permanent boven de stippellijn uitkomt duidt op een structurele verandering
+in de opstelling. De absolute waarde van de effectieve &alpha; kan worden gebruikt om
+de huidige kalibratiewaarden bij te stellen als onderhoud niet direct mogelijk is.</p>
+
+<h3>Verificatie in simulatiemodus</h3>
+
+<p>Om te controleren dat het algoritme correct werkt, kan een bekende fout worden ingespoten:</p>
+
+<pre>% Voeg toe aan digital_twin.m voor de hoofdlus:
+Wis.leak_alpha(1) = Wis.leak_alpha(1) * 1.2;   % injecteer c1 = 0.20 (20% meer lekkage)</pre>
+
+<p>Verwacht resultaat na ~20 stappen (zodra de buffer vol is):</p>
+<ul>
+  <li><code>c_hat(1) &asymp; +0.20</code> (kanaal 1 correct gedetecteerd)</li>
+  <li><code>c_hat(2) &asymp; 0.00</code>, <code>c_hat(3) &asymp; 0.00</code> (kanalen 2 en 3 onberoerd)</li>
+  <li>Effectieve &alpha;<sub>1</sub> convergeert naar 39.617 &times; 1.2 = <strong>47.5 cm<sup>3/2</sup>/s</strong></li>
+</ul>
+
+<hr>
+
+<h2>8 &nbsp; Simulatiemodus versus hardwaremodus</h2>
+
+<table>
+  <tr><th>Aspect</th><th>Simulatiemodus (<code>digital_twin.m</code>)</th><th>Hardwaremodus (<code>twin_update_hardware.m</code>)</th></tr>
+  <tr>
+    <td>Databron</td>
+    <td>Intern plantmodel in MATLAB</td>
+    <td>Firefly-sensoren via Flask API</td>
+  </tr>
+  <tr>
+    <td>Ware fout bekend?</td>
+    <td>Ja (handmatig ingespoten)</td>
+    <td>Nee (onbekend in de echte wereld)</td>
+  </tr>
+  <tr>
+    <td>Wat toont de plot?</td>
+    <td>c_hat convergeert naar de ingespoten waarde &rarr; algoritme-validatie</td>
+    <td>c_hat toont echte afwijking t.o.v. het gecalibreerde model &rarr; conditiemonitoring</td>
+  </tr>
+  <tr>
+    <td>Hoe bufferbeheer?</td>
+    <td>Preallocated arrays (<code>nan(3, MAX_STEPS)</code>), geindexeerd via <code>step</code></td>
+    <td>Dynamisch groeiende arrays (<code>[hist, nieuwe_waarde]</code>), geen vaste lengte</td>
+  </tr>
+  <tr>
+    <td>Toestandsbeheer</td>
+    <td>Gewone variabelen in scriptworkspace</td>
+    <td>Persistent variabelen in de callback-functie</td>
+  </tr>
+  <tr>
+    <td>AEMF-logica</td>
+    <td colspan="2" style="text-align:center">
+      <strong>Identiek in beide modi</strong> &mdash; zelfde <code>twin_estimate_leakage_faults.m</code>
+    </td>
+  </tr>
+</table>
+
+<div class="box box-yellow">
+  <span class="box-title">Sleutelvoordeel van de hardwaremodus</span>
+  In de hardwaremodus hoeft de ware fout nooit bekend te zijn. Het systeem detecteert
+  automatisch of de werkelijke lekkage structureel afwijkt van het gecalibreerde model.
+  Dit maakt het een <strong>on-line conditiemonitoring</strong> systeem: de opstelling
+  signaleert wanneer een sluis slijt of verstopt raakt, zonder dat er fysieke inspectie
+  nodig is.
+</div>
+
+<hr>
+
+<h2>9 &nbsp; Beperkingen en aandachtspunten</h2>
+
+<ul>
+  <li>
+    <strong>Observeerbaarheid vereist dynamiek:</strong> als alle waterpeilen nauwkeurig op setpoint staan,
+    zijn de lekkagekanalen moeilijk te onderscheiden. Het systeem geeft dan <code>NaN</code>
+    terug. Dit is inherent aan de methode en niet een softwarefout. De MPC-regeling zorgt
+    normaalgesproken voor voldoende dynamiek.
+  </li>
+  <li>
+    <strong>Linearisatie rond huidig werkpunt:</strong> de regressormatrix E wordt opgebouwd
+    met de huidige peilschatting. De lekkageformule is niet-lineair; bij grote
+    peilvariaties kan dit een kleine schatfout introduceren.
+  </li>
+  <li>
+    <strong>Vensterlengte K = 20 stappen:</strong> een kortere venster reageert sneller maar
+    is gevoeliger voor meetruis; een langere venster is stabieler maar trager. De keuze van 20
+    is instelbaar via <code>FAULT_WINDOW</code> in <code>digital_twin.m</code>.
+  </li>
+  <li>
+    <strong>Geen dynamisch filter N(z):</strong> het originele AEMF-project kan de innovaties
+    voorfilteren voor betere observeerbaarheid. Dit is hier weggelaten. Bij sterk ruisige
+    metingen kan het toevoegen van zo'n filter de schatkwaliteit verbeteren.
+  </li>
+</ul>
+
+<hr>
+
+<h2>10 &nbsp; Referenties</h2>
+
+<ul>
+  <li>
+    G. de Albuquerque Gleizer, P. Mohajerin Esfahani, T. Keviczky (2024).
+    <em>Active Estimation of Multiplicative Faults in Dynamical Systems.</em>
+    TU Delft. Open-source: map <code>aemf/</code> in dit project.
+  </li>
+  <li>
+    Li &amp; Cantoni (2008). <em>Distributed H&infin; controller synthesis via linear matrix inequalities.</em>
+    Toegepast in <code>WIS-sim/simulation/cantoni_LMI.m</code>.
+  </li>
+  <li>
+    Rauch, Tung &amp; Striebel (1965). <em>Maximum likelihood estimates of linear dynamic systems.</em>
+    Ge&iuml;mplementeerd als Kalman-smoother in <code>WIS-twin/kalman_smoother.m</code>.
+  </li>
+</ul>
+
+<hr>
+<p style="text-align:center; color:#888; font-size:9pt;">
+  WIS Digitale Tweeling &mdash; BEP TU Delft 2026 &mdash; Maurits Bloys<br>
+  <strong>PDF maken:</strong> open dit bestand in een browser (Chrome/Edge) &rarr; Ctrl+P &rarr; "Opslaan als PDF" &rarr; schakel "Achtergrondgrafische afbeeldingen" in voor gekleurde kaders
+</p>
+
+</body>
+</html>

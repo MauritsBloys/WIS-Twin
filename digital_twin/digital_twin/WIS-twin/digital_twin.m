@@ -119,9 +119,9 @@ try; delete(log_file_latest); catch; end
 %% Initialise plots
 if PLOT_LIVE
     if USE_HARDWARE
-        plt = twin_plot_init(y_ref, N);
+        plt = twin_plot_init(y_ref, N, [], Wis);
     else
-        plt = twin_plot_init(y_ref, N, DISTURBANCE_EPOCH);
+        plt = twin_plot_init(y_ref, N, DISTURBANCE_EPOCH, Wis);
     end
 end
 
@@ -133,6 +133,14 @@ innov_hist     = zeros(3, MAX_STEPS);
 u_hist         = zeros(3, MAX_STEPS);
 K_diag_hist    = zeros(3, MAX_STEPS);
 y_nompc_hist   = nan(3,  MAX_STEPS);
+
+%% AEMF lekkagefout-schatting buffers
+FAULT_WINDOW = 20;
+innov_buf    = nan(3, FAULT_WINDOW);
+hest_buf     = nan(3, FAULT_WINDOW);
+c_hat_hist   = nan(3, MAX_STEPS);
+q_nom_hist   = nan(3, MAX_STEPS);
+q_hat_hist   = nan(3, MAX_STEPS);
 
 %% Open connection for hardware mode
 if USE_HARDWARE
@@ -234,6 +242,29 @@ while step < MAX_STEPS
     d_leak  = twin_compute_leakage(h_est, Wis, wl_idx, size(A,1)) - d_leak_nom;
     [x_hat, P, innov] = twin_kalman_update(A, B, C, Q_kal, R_kal, x_hat, P, y_dev, u_kal, d_leak);
 
+    %% 2b. AEMF: schat multiplicatieve lekkagefouten
+    h_est_abs  = C * x_hat + y_ref;
+    innov_buf  = [innov_buf(:,2:end), innov];
+    hest_buf   = [hest_buf(:,2:end),  h_est_abs];
+
+    q_nom_hist(:, step) = [
+        wis_leakage(Wis.h0,       h_est_abs(1), Wis.leak_alpha(1), Wis.leak_beta(1));
+        wis_leakage(h_est_abs(1), h_est_abs(2), Wis.leak_alpha(2), Wis.leak_beta(2));
+        wis_leakage(h_est_abs(2), h_est_abs(3), Wis.leak_alpha(3), Wis.leak_beta(3))
+    ] * 1e6;  % m3/s -> cm3/s
+
+    if step >= FAULT_WINDOW
+        [c_hat_now, sigma_min] = twin_estimate_leakage_faults( ...
+            innov_buf, hest_buf, Wis, wl_idx, C, size(A,1));
+        c_hat_hist(:, step) = c_hat_now;
+        if ~any(isnan(c_hat_now))
+            q_hat_hist(:, step) = q_nom_hist(:, step) .* (1 + c_hat_now);
+        end
+        if sigma_min < 1e-6
+            fprintf('Stap %d: lekkage niet observeerbaar (sigma_min^2=%.2e)\n', step, sigma_min);
+        end
+    end
+
     %% 3. MPC
     u_mpc  = twin_mpc_solve(A, B, C, x_hat, zeros(size(C,1),1), Q_mpc, R_mpc, N, du_max, u_min, u_max, u_prev);
     u_prev = u_mpc;
@@ -280,7 +311,8 @@ while step < MAX_STEPS
     if PLOT_LIVE
         twin_plot_update(plt, t_vec(:,1:step), y_hist(:,1:step), y_pred_hist(:,1:step), ...
                          innov_hist(:,1:step), u_hist(:,1:step), K_diag_hist(:,1:step), ...
-                         mpc_traj, y_ref, y_nompc_hist(:,1:step));
+                         mpc_traj, y_ref, y_nompc_hist(:,1:step), ...
+                         q_nom_hist(:,1:step), q_hat_hist(:,1:step), c_hat_hist(:,1:step));
     end
 
     pause(H_LOOP);

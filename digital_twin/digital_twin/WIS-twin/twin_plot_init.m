@@ -1,12 +1,16 @@
-function handles = twin_plot_init(y_ref, N, disturbance_epoch)
+function handles = twin_plot_init(y_ref, N, disturbance_epoch, Wis)
 %TWIN_PLOT_INIT  Maak afzonderlijke figuurvensters per plot.
-%   handles = twin_plot_init(y_ref, N, disturbance_epoch)
+%   handles = twin_plot_init(y_ref, N, disturbance_epoch, Wis)
 %   y_ref             : 3x1 referentiewaterpeilen
 %   N                 : MPC-horizonlengte
 %   disturbance_epoch : tijdstap waarop verstoring begint (optioneel)
+%   Wis               : lekkage-struct voor nominale alpha-lijnen (optioneel)
 
 if nargin < 3 || isempty(disturbance_epoch)
     disturbance_epoch = [];
+end
+if nargin < 4
+    Wis = [];
 end
 
 colors = {'b','r','g'};
@@ -102,5 +106,39 @@ if ~isempty(disturbance_epoch)
         xline(ax, disturbance_epoch, 'k--', 'HandleVisibility', 'off', 'LineWidth', 1);
     end
 end
+
+%% Figuur 8: Lekkageflow en effectieve alpha (AEMF)
+handles.fig_leak = figure('Name', 'WIS — Lekkage (AEMF)', 'NumberTitle', 'off');
+
+handles.ax_leak = subplot(2,1,1, 'Parent', handles.fig_leak);
+title(handles.ax_leak, 'Lekkageflow per kanaal [cm³/s]');
+xlabel(handles.ax_leak, 'Epoch (stap)'); ylabel(handles.ax_leak, 'cm³/s');
+grid(handles.ax_leak, 'on'); hold(handles.ax_leak, 'on');
+for i = 1:3
+    handles.h_qnom(i) = plot(handles.ax_leak, NaN, NaN, [colors{i} '--'], ...
+        'DisplayName', sprintf('q%d nominaal', i));
+    handles.h_qhat(i) = plot(handles.ax_leak, NaN, NaN, [colors{i} '-'], ...
+        'LineWidth', 1.5, 'DisplayName', sprintf('q%d geschat', i));
+end
+legend(handles.ax_leak, 'Location', 'best');
+
+handles.ax_alpha = subplot(2,1,2, 'Parent', handles.fig_leak);
+title(handles.ax_alpha, 'Effectieve \alpha per kanaal (nominaal = stippellijn)');
+xlabel(handles.ax_alpha, 'Epoch (stap)'); ylabel(handles.ax_alpha, '\alpha_{eff} [cm^{3/2}/s]');
+grid(handles.ax_alpha, 'on'); hold(handles.ax_alpha, 'on');
+if ~isempty(Wis)
+    handles.alpha_nom = Wis.leak_alpha;
+    for i = 1:3
+        yline(handles.ax_alpha, Wis.leak_alpha(i), [colors{i} ':'], ...
+            'LineWidth', 1.2, 'HandleVisibility', 'off');
+    end
+else
+    handles.alpha_nom = [];
+end
+for i = 1:3
+    handles.h_alpha(i) = plot(handles.ax_alpha, NaN, NaN, [colors{i} '-'], ...
+        'LineWidth', 1.5, 'DisplayName', sprintf('\\alpha_%d geschat', i));
+end
+legend(handles.ax_alpha, 'Location', 'best');
 
 end
