@@ -25,14 +25,14 @@ if any(isnan(vals(1:3))) || any(vals(1:3) <= 0) || any(vals(1:3) > 0.50)
     warning('digital_twin: ongeldige setpoints — standaard [%.2f %.2f %.2f] m gebruikt.', ...
         y_ref(1), y_ref(2), y_ref(3));
 else
-    y_ref = vals(1:3)';
+    y_ref = reshape(vals(1:3), 3, 1);
 end
 servo_init = round(vals(4:6));
 if any(isnan(servo_init)) || any(servo_init < 0) || any(servo_init > 255)
     warning('digital_twin: ongeldige sluisposities — start met gesloten sluizen (0).');
     u_init = zeros(3,1);
 else
-    u_init = servo_init' / 255 * 0.5;   % servo [0–255] → Cantoni [0–0.5]
+    u_init = servo_init(:) / 255 * 0.5;  % servo [0–255] → Cantoni [0–0.5]
 end
 fprintf('Setpoints:      [%.3f  %.3f  %.3f] m\n',          y_ref(1),      y_ref(2),      y_ref(3));
 fprintf('Beginposities:  [%3d  %3d  %3d] servo  →  [%.3f  %.3f  %.3f] Cantoni\n', ...
@@ -68,6 +68,7 @@ C = plant_disc.C;
 
 % Bepaal welke toestanden de waterpeilen zijn (via C-matrix)
 wl_idx = arrayfun(@(i) find(abs(C(i,:)) > 0.5, 1), 1:3)';
+fprintf('B-matrix koppeling waterstand→u: max(|B([1,5,9],:)|) = %.6f\n', max(max(abs(B(wl_idx,:)))));
 if USE_ESTIMATED_QR
     Q_kal = Q_kal_final;
     R_kal = R_kal_final;
@@ -117,7 +118,11 @@ try; delete(log_file_latest); catch; end
 
 %% Initialise plots
 if PLOT_LIVE
-    plt = twin_plot_init(y_ref, N, DISTURBANCE_EPOCH);
+    if USE_HARDWARE
+        plt = twin_plot_init(y_ref, N);
+    else
+        plt = twin_plot_init(y_ref, N, DISTURBANCE_EPOCH);
+    end
 end
 
 %% History buffers (preallocated to MAX_STEPS)
@@ -133,6 +138,8 @@ y_nompc_hist   = nan(3,  MAX_STEPS);
 if USE_HARDWARE
     if USE_FLASK_API
         fprintf('WIS Digital Twin starting (HARDWARE mode, Flask API op %s)...\n', FLASK_URL);
+        webwrite([FLASK_URL '/api/firefly/mode/manual'], struct(), weboptions('MediaType','application/json'));
+        fprintf('Firefly geschakeld naar MANUAL mode — MPC neemt over.\n');
     else
         device = serialport(COM_PORT, 115200, 'Timeout', 2);
         configureTerminator(device, 'LF');
@@ -231,6 +238,20 @@ while step < MAX_STEPS
     u_mpc  = twin_mpc_solve(A, B, C, x_hat, zeros(size(C,1),1), Q_mpc, R_mpc, N, du_max, u_min, u_max, u_prev);
     u_prev = u_mpc;
 
+    %% 3b. Stuur MPC-commando naar hardware
+    if USE_HARDWARE && USE_FLASK_API
+        servo_cmd = min(255, max(0, round(u_mpc * 510)));
+        nodes = [201, 202, 203];
+        for ii = 1:3
+            try
+                webwrite(sprintf('%s/api/firefly/gate/%d/%d', FLASK_URL, nodes(ii), servo_cmd(ii)), ...
+                         struct(), weboptions('MediaType','application/json'));
+            catch e
+                fprintf('Waarschuwing: sluis %d commando mislukt (%s)\n', ii, e.message);
+            end
+        end
+    end
+
     %% 4. MPC predicted trajectory for plotting (inclusief lekkage)
     mpc_traj = zeros(3, N);
     x_tmp = x_hat;
@@ -266,7 +287,10 @@ while step < MAX_STEPS
 end
 
 %% Cleanup
-if USE_HARDWARE && ~USE_FLASK_API
+if USE_HARDWARE && USE_FLASK_API
+    webwrite([FLASK_URL '/api/firefly/mode/auto'], struct(), weboptions('MediaType','application/json'));
+    fprintf('Firefly teruggeschakeld naar AUTO mode (Cantoni).\n');
+elseif USE_HARDWARE
     delete(device);
 end
 

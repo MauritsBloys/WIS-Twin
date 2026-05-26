@@ -9,10 +9,17 @@ venv/
 digital_twin/digital_twin/WIS-sim/simulation/mat/
 digital_twin/digital_twin/WIS-sim/pstc/*.mat
 digital_twin/digital_twin/WIS-twin/data/twin_log_*.csv
+digital_twin/digital_twin/WIS-twin/data/twin_log.csv
 
 # Simulink binary models
 *.slx
 *.slxc
+
+# IDE / AI tool internals
+.superpowers/
+ruvector.db
+debug.log
+docs/superpowers/
 
 # OS
 .DS_Store

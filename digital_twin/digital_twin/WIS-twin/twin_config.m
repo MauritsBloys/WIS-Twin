@@ -27,9 +27,9 @@ end
 % Sluispositietoestand_ss = kappa*phi*u = 3*u, dus u=0.33 → volledig open.
 % Bounds zijn bepaald op basis van Cantoni actuatordynamica (kappa=0.3, phi=10).
 N      = 10;             % prediction horizon [tijdstappen]
-Q_mpc  = 10  * eye(3);   % weging op setpuntafwijking
-R_mpc  = 0.1 * eye(3);   % weging op regelmoeite
-du_max = 0.05;           % max regelaarverandering per stap [Cantoni signaaleenheden]
+Q_mpc  = 1000 * eye(3);  % weging op setpuntafwijking — groot vanwege zwakke B-koppeling op 1 Hz
+R_mpc  = 0.001 * eye(3); % weging op regelmoeite — klein zodat MPC actief bijstuurt
+du_max = 0.1;            % max regelaarverandering per stap [Cantoni signaaleenheden]
 u_min  = zeros(3,1);     % ondergrens (sluis dicht)
 u_max  = 0.5 * ones(3,1); % bovengrens (~volledig open in Cantoni signaalruimte)
 
