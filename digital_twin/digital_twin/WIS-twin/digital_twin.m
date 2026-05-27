@@ -13,9 +13,10 @@ antw = inputdlg( ...
      'Pool 3 setpoint [m]:', ...
      'Sluis 1 beginpositie [servo 0–255]:', ...
      'Sluis 2 beginpositie [servo 0–255]:', ...
-     'Sluis 3 beginpositie [servo 0–255]:'}, ...
+     'Sluis 3 beginpositie [servo 0–255]:', ...
+     'Sluis 4 (overloopsluis) positie [servo 0–255]:'}, ...
     'WIS Digital Twin — Instellingen', 1, ...
-    {num2str(y_ref(1)), num2str(y_ref(2)), num2str(y_ref(3)), '0', '0', '0'});
+    {num2str(y_ref(1)), num2str(y_ref(2)), num2str(y_ref(3)), '0', '0', '0', '0'});
 if isempty(antw)
     fprintf('Geen instellingen ingevoerd — simulatie afgebroken.\n');
     return
@@ -34,9 +35,15 @@ if any(isnan(servo_init)) || any(servo_init < 0) || any(servo_init > 255)
 else
     u_init = servo_init(:) / 255 * 0.5;  % servo [0–255] → Cantoni [0–0.5]
 end
+servo_g4 = round(vals(7));
+if isnan(servo_g4) || servo_g4 < 0 || servo_g4 > 255
+    warning('digital_twin: ongeldige overloopsluis positie — gebruik 0.');
+    servo_g4 = 0;
+end
 fprintf('Setpoints:      [%.3f  %.3f  %.3f] m\n',          y_ref(1),      y_ref(2),      y_ref(3));
 fprintf('Beginposities:  [%3d  %3d  %3d] servo  →  [%.3f  %.3f  %.3f] Cantoni\n', ...
         servo_init(1), servo_init(2), servo_init(3), u_init(1), u_init(2), u_init(3));
+fprintf('Overloopsluis:  sluis 4 = %d servo\n', servo_g4);
 
 %% Load plant matrices from pre-computed workspace
 % comb_plant_cont is the continuous-time Cantoni plant (Ap, Bp, Cp).
@@ -105,7 +112,7 @@ DISTURBANCE_EPOCH = 20;
 disturbance       = [-0.015; 0; 0];
 
 %% Run duration — lower for quick tests, 1800 = 30 min full run
-MAX_STEPS = 60;
+MAX_STEPS = 600;
 
 %% Initialise logging
 timestamp       = char(datetime('now', 'Format', 'yyyyMMdd_HHmmss'));
@@ -280,6 +287,12 @@ while step < MAX_STEPS
             catch e
                 fprintf('Waarschuwing: sluis %d commando mislukt (%s)\n', ii, e.message);
             end
+        end
+        try
+            webwrite(sprintf('%s/api/firefly/gate/204/%d', FLASK_URL, servo_g4), ...
+                     struct(), weboptions('MediaType','application/json'));
+        catch e
+            fprintf('Waarschuwing: overloopsluis (sluis 4) commando mislukt (%s)\n', e.message);
         end
     end
 
