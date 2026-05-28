@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MPC Alarm — Hoe werkt het?</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #f0f4f8;
+    color: #222;
+    line-height: 1.7;
+  }
+
+  header {
+    background: linear-gradient(135deg, #1a73e8, #0d47a1);
+    color: white;
+    padding: 40px 32px 32px;
+  }
+  header h1 { font-size: 2rem; margin-bottom: 6px; }
+  header p  { font-size: 1.05rem; opacity: 0.9; }
+
+  main {
+    max-width: 860px;
+    margin: 32px auto;
+    padding: 0 20px 60px;
+  }
+
+  section {
+    background: white;
+    border-radius: 12px;
+    padding: 28px 32px;
+    margin-bottom: 28px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  }
+
+  h2 {
+    font-size: 1.3rem;
+    color: #1a73e8;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  h3 { font-size: 1.05rem; color: #333; margin: 18px 0 8px; }
+
+  p  { margin-bottom: 12px; }
+
+  .analogy {
+    background: #e8f0fe;
+    border-left: 4px solid #1a73e8;
+    border-radius: 0 8px 8px 0;
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-style: italic;
+  }
+
+  .example-box {
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    font-size: 0.95rem;
+  }
+  .example-box strong { color: #1a73e8; }
+
+  .alarm-strip {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin: 20px 0;
+  }
+
+  .step-box {
+    flex: 1;
+    min-width: 130px;
+    text-align: center;
+    padding: 14px 10px;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-weight: 600;
+  }
+  .step-ok    { background: #e6f4ea; border: 2px solid #34a853; color: #1e7e34; }
+  .step-warn  { background: #fff3cd; border: 2px solid #f9a825; color: #7a5000; }
+  .step-alarm { background: #fce8e6; border: 2px solid #d93025; color: #b31412; }
+
+  .arrow { font-size: 1.4rem; color: #888; }
+
+  .counter-row {
+    display: flex;
+    gap: 10px;
+    margin: 14px 0;
+    flex-wrap: wrap;
+  }
+  .dot-wrap { text-align: center; }
+  .counter-dot {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.1rem;
+  }
+  .dot-off   { background: #eee; border: 2px solid #ccc; color: #999; }
+  .dot-on    { background: #f9a825; border: 2px solid #e65100; color: #fff; }
+  .dot-alarm { background: #d93025; border: 2px solid #7f0000; color: #fff; }
+  .dot-label { font-size: 0.78rem; color: #555; margin-top: 4px; }
+
+  .code-block {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 0.88rem;
+    line-height: 1.65;
+    overflow-x: auto;
+    margin: 16px 0;
+  }
+  .code-block .kw  { color: #569cd6; }
+  .code-block .cm  { color: #6a9955; font-style: italic; }
+  .code-block .str { color: #ce9178; }
+  .code-block .num { color: #b5cea8; }
+  .code-block .fn  { color: #dcdcaa; }
+
+  .tag {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+  .tag-ok    { background: #e6f4ea; color: #1e7e34; }
+  .tag-alarm { background: #fce8e6; color: #b31412; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.93rem;
+  }
+  th {
+    background: #1a73e8;
+    color: white;
+    padding: 10px 14px;
+    text-align: left;
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #eee;
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: #f8f9fa; }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin-top: 14px;
+  }
+  .summary-card {
+    background: #f0f4f8;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    font-size: 0.88rem;
+  }
+  .summary-card .icon { font-size: 2rem; margin-bottom: 6px; }
+  .summary-card strong { display: block; margin-bottom: 4px; font-size: 0.95rem; }
+
+  footer {
+    text-align: center;
+    font-size: 0.82rem;
+    color: #999;
+    margin-top: 8px;
+  }
+
+  /* Wiskunde */
+  .eq {
+    background: #f5f0ff;
+    border: 1px solid #c5b3f5;
+    border-radius: 8px;
+    padding: 14px 22px;
+    margin: 16px 0;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 1.05rem;
+    text-align: center;
+    color: #2d006e;
+    letter-spacing: 0.5px;
+  }
+  .eq .label {
+    display: block;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 0.78rem;
+    color: #888;
+    margin-top: 6px;
+    font-style: italic;
+    letter-spacing: 0;
+  }
+
+  .eq-explain {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px 14px;
+    background: #faf8ff;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 12px 0;
+    font-size: 0.92rem;
+  }
+  .eq-explain .sym {
+    font-family: 'Consolas', monospace;
+    color: #2d006e;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .eq-explain .desc { color: #333; }
+
+  .constraint-list {
+    list-style: none;
+    margin: 12px 0;
+    padding: 0;
+  }
+  .constraint-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    font-size: 0.93rem;
+  }
+  .constraint-list li .icon { font-size: 1.3rem; flex-shrink: 0; }
+  .cl-blue   { background: #e8f0fe; }
+  .cl-green  { background: #e6f4ea; }
+  .cl-orange { background: #fff3cd; }
+
+  .number-line {
+    position: relative;
+    height: 54px;
+    margin: 20px 10px 32px;
+  }
+  .nl-track {
+    position: absolute;
+    top: 22px;
+    left: 0; right: 0;
+    height: 4px;
+    background: #ddd;
+    border-radius: 2px;
+  }
+  .nl-ok {
+    position: absolute;
+    top: 22px;
+    height: 4px;
+    background: #34a853;
+    border-radius: 2px;
+  }
+  .nl-label {
+    position: absolute;
+    top: 30px;
+    transform: translateX(-50%);
+    font-size: 0.75rem;
+    color: #555;
+    white-space: nowrap;
+  }
+  .nl-tick {
+    position: absolute;
+    top: 14px;
+    width: 2px;
+    height: 20px;
+    background: #555;
+    transform: translateX(-50%);
+  }
+  .nl-tick-red {
+    position: absolute;
+    top: 14px;
+    width: 2px;
+    height: 20px;
+    background: #d93025;
+    transform: translateX(-50%);
+  }
+  .nl-empty {
+    position: absolute;
+    top: 14px;
+    height: 24px;
+    background: repeating-linear-gradient(
+      45deg, #fce8e6, #fce8e6 4px, #fff 4px, #fff 8px
+    );
+    border: 1px dashed #d93025;
+    border-radius: 3px;
+  }
+
+  .math-section { border-left: 4px solid #7c4dff; }
+  .math-section h2 { color: #5e35b1; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>&#x1F6A8; MPC Infeasibility Alarm</h1>
+  <p>Hoe de digitale tweeling merkt wanneer de regelaar vastloopt &mdash; uitgelegd voor iedereen</p>
+</header>
+
+<main>
+
+  <!-- Sectie 1: Wat is MPC? -->
+  <section>
+    <h2>&#x1F9E0; Wat doet de regelaar eigenlijk?</h2>
+    <p>
+      In de digitale tweeling regelt een <strong>MPC-regelaar</strong> (Model Predictive Control) de sluizen van drie waterbassins.
+      Elke seconde berekent hij opnieuw: <em>"Hoe moet ik de sluizen instellen zodat het water op het juiste niveau komt?"</em>
+    </p>
+    <div class="analogy">
+      <strong>&#x1F5FA; Vergelijk het met een GPS-navigatiesysteem:</strong><br>
+      Elke seconde herberekent de GPS de beste route. Hij kijkt een stuk vooruit, houdt rekening met files,
+      en kiest de slimste weg. De MPC doet precies hetzelfde &mdash; maar dan voor de waterstand.
+      Hij kijkt <strong>10 stappen vooruit</strong> en kiest de beste sluisinstellingen.
+    </div>
+    <p>
+      Na elke berekening voert het systeem alleen de allereerste stap uit.
+      De volgende seconde begint het opnieuw. Dit herhaalt zich de hele tijd.
+    </p>
+  </section>
+
+  <!-- Sectie 2: Wat is infeasibility? -->
+  <section>
+    <h2>&#x26A0;&#xFE0F; Wanneer loopt de regelaar vast?</h2>
+    <p>
+      Soms lukt het de regelaar <strong>niet</strong> om een oplossing te vinden.
+      Dit heet <em>infeasibility</em> &mdash; in het Nederlands zoiets als &ldquo;onoplosbaar&rdquo;.
+    </p>
+
+    <div class="analogy">
+      <strong>&#x1F9E9; Vergelijk het met een sudoku:</strong><br>
+      Stel je probeert een sudoku op te lossen, maar iemand heeft al getallen ingevuld die met elkaar botsen.
+      Hoe lang je ook probeert &mdash; er bestaat geen geldige oplossing.
+      De regelaar heeft hetzelfde probleem: de eisen die aan hem gesteld worden zijn fysiek onmogelijk.
+    </div>
+
+    <h3>Wanneer kan dit gebeuren?</h3>
+
+    <table>
+      <tr>
+        <th>Situatie</th>
+        <th>Waarom het misgaat</th>
+      </tr>
+      <tr>
+        <td>Waterstand is ver weg van het setpoint</td>
+        <td>De sluis kan het water niet snel genoeg bijsturen binnen de toegestane tijd</td>
+      </tr>
+      <tr>
+        <td>Sluis staat al op maximale stand (255)</td>
+        <td>Er is geen ruimte meer om verder te gaan, maar het systeem vraagt toch meer</td>
+      </tr>
+      <tr>
+        <td>Grote lekkage of onverwachte storing</td>
+        <td>Het model van de werkelijkheid klopt niet meer &mdash; de berekening gaat de mist in</td>
+      </tr>
+    </table>
+
+    <div class="example-box">
+      <strong>&#x1F4A7; Concreet voorbeeld:</strong><br>
+      Bassin 1 staat op 0.10 m, maar het setpoint is 0.25 m. De sluis staat al op maximale stand.
+      De regelaar berekent: &ldquo;Om in 10 stappen op 0.25 m te komen, moet de sluis verder open.&rdquo;
+      Maar dat kan niet &mdash; hij staat al op max. Er bestaat geen geldige oplossing. <em>Infeasible.</em>
+    </div>
+  </section>
+
+  <!-- Sectie 3: Hoe werkt het alarm? -->
+  <section>
+    <h2>&#x1F6A8; Hoe werkt het alarm?</h2>
+    <p>
+      Het systeem houdt bij hoe vaak de regelaar <em>achter elkaar</em> vastloopt.
+      Bij de <strong>derde opeenvolgende mislukte berekening</strong> gaat het alarm af.
+    </p>
+
+    <h3>Stap voor stap &mdash; een run van 5 stappen</h3>
+
+    <div class="alarm-strip">
+      <div class="step-box step-ok">&#x2705;<br>Stap 1<br>MPC lukt</div>
+      <div class="arrow">&#8594;</div>
+      <div class="step-box step-ok">&#x2705;<br>Stap 2<br>MPC lukt</div>
+      <div class="arrow">&#8594;</div>
+      <div class="step-box step-warn">&#x26A0;&#xFE0F;<br>Stap 3<br>Mislukt #1</div>
+      <div class="arrow">&#8594;</div>
+      <div class="step-box step-warn">&#x26A0;&#xFE0F;<br>Stap 4<br>Mislukt #2</div>
+      <div class="arrow">&#8594;</div>
+      <div class="step-box step-alarm">&#x1F6A8;<br>Stap 5<br>Mislukt #3<br><small>ALARM AAN</small></div>
+    </div>
+
+    <h3>De teller</h3>
+    <p>Het systeem houdt intern een teller bij van opeenvolgende mislukkingen:</p>
+
+    <div class="counter-row">
+      <div class="dot-wrap"><div class="counter-dot dot-off">0</div><div class="dot-label">Start</div></div>
+      <div class="dot-wrap"><div class="counter-dot dot-on">1</div><div class="dot-label">1e mislukking</div></div>
+      <div class="dot-wrap"><div class="counter-dot dot-on">2</div><div class="dot-label">2e mislukking</div></div>
+      <div class="dot-wrap"><div class="counter-dot dot-alarm">3</div><div class="dot-label">&#x1F6A8; ALARM</div></div>
+    </div>
+
+    <p>
+      Belangrijk: de teller telt <em>alleen opeenvolgend</em>.
+      Als de berekening er tussenin één keer lukt, begint de teller opnieuw bij nul.
+    </p>
+
+    <div class="example-box">
+      <strong>&#x274C; Voorbeeld: géén alarm</strong><br>
+      Mislukking &rarr; Mislukking &rarr; <span class="tag tag-ok">LUKT</span> &rarr; teller = 0 &rarr; Mislukking &rarr; &hellip;<br>
+      Er zijn nooit 3 op rij, dus het alarm gaat niet af.
+    </div>
+    <div class="example-box">
+      <strong>&#x1F6A8; Voorbeeld: wél alarm</strong><br>
+      Mislukking &rarr; Mislukking &rarr; Mislukking &rarr; <span class="tag tag-alarm">ALARM AAN</span><br>
+      Drie keer op rij vastgelopen &mdash; het systeem waarschuwt.
+    </div>
+  </section>
+
+  <!-- Sectie 4: Wat doet het systeem? -->
+  <section>
+    <h2>&#x1F527; Wat doet het systeem als het alarm afgaat?</h2>
+    <p>
+      Het alarm is <strong>alleen een signaal</strong>. Het systeem schakelt <em>niet</em> automatisch over naar een andere stand.
+      De sluizen blijven staan op de laatste bekende positie.
+    </p>
+
+    <div class="analogy">
+      <strong>&#x1F6A8; Vergelijk het met een brandmelder:</strong><br>
+      Als een brandmelder afgaat, stopt de verwarming niet automatisch en gaan de deuren niet op slot.
+      De melder geeft alleen een signaal zodat mensen weten dat er iets mis is.
+      Wat er daarna gebeurt, beslist een persoon. Het MPC-alarm werkt precies zo.
+    </div>
+
+    <table>
+      <tr>
+        <th>Situatie</th>
+        <th>Wat het systeem doet</th>
+      </tr>
+      <tr>
+        <td>MPC mislukt &mdash; 1e of 2e keer op rij</td>
+        <td>Doorgaan met laatste sluisstand. Teller +1. Geen melding.</td>
+      </tr>
+      <tr>
+        <td>MPC mislukt &mdash; 3e keer op rij</td>
+        <td><span class="tag tag-alarm">ALARM AAN</span> &mdash; melding in MATLAB-console. Sluizen onveranderd.</td>
+      </tr>
+      <tr>
+        <td>MPC lukt weer na het alarm</td>
+        <td><span class="tag tag-ok">Alarm uit</span> &mdash; melding in console. Teller reset naar 0.</td>
+      </tr>
+    </table>
+
+    <p>Wanneer het alarm afgaat, verschijnt deze melding in MATLAB:</p>
+    <div class="code-block">*** MPC ALARM: QP niet oplosbaar voor 3 opeenvolgende stappen (stap 47) ***</div>
+
+    <p>En als het herstelt:</p>
+    <div class="code-block">MPC alarm opgeheven na stap 50 &mdash; QP weer oplosbaar.</div>
+  </section>
+
+  <!-- Sectie 5: De code -->
+  <section>
+    <h2>&#x1F4BB; Hoe ziet dit eruit in de code?</h2>
+    <p>
+      Hieronder staat de kern van de alarm-logica in de hoofdlus van de digitale tweeling.
+      Het is MATLAB-code, maar je kunt het lezen als gewone stappen.
+    </p>
+    <div class="code-block">
+<span class="cm">% Vraag de regelaar om een oplossing &mdash; en of het lukte</span>
+[u_mpc, mpc_infeasible] = <span class="fn">twin_mpc_solve</span>(...);
+
+<span class="kw">if</span> mpc_infeasible
+    mpc_fail_count = mpc_fail_count + <span class="num">1</span>;   <span class="cm">% teller omhoog</span>
+
+    <span class="kw">if</span> mpc_fail_count >= <span class="num">3</span> &amp;&amp; ~mpc_alarm
+        mpc_alarm = <span class="kw">true</span>;              <span class="cm">% alarm aan (eenmalig)</span>
+        <span class="fn">fprintf</span>(<span class="str">'*** MPC ALARM: ... ***\n'</span>);
+    <span class="kw">end</span>
+
+<span class="kw">else</span>
+    <span class="kw">if</span> mpc_alarm
+        <span class="fn">fprintf</span>(<span class="str">'MPC alarm opgeheven ...\n'</span>);
+        mpc_alarm = <span class="kw">false</span>;             <span class="cm">% alarm uit</span>
+    <span class="kw">end</span>
+    mpc_fail_count = <span class="num">0</span>;               <span class="cm">% teller reset</span>
+<span class="kw">end</span>
+    </div>
+
+    <p>
+      De functie <code>twin_mpc_solve</code> geeft naast de sluisstand ook een vlag terug:
+      <code>mpc_infeasible</code> is <strong>true</strong> als er geen oplossing gevonden werd,
+      en <strong>false</strong> als alles goed ging.
+      De sluis zelf doet in beide gevallen hetzelfde &mdash; hij houdt de vorige stand aan.
+    </p>
+  </section>
+
+  <!-- Sectie 6: Het wiskundige model -->
+  <section class="math-section">
+    <h2>&#x1D40C; De wiskunde achter MPC &mdash; stap 1: het model</h2>
+    <p>
+      Voordat de regelaar iets kan berekenen, heeft hij een <strong>wiskundig model</strong> van de bassins nodig.
+      Dat model beschrijft hoe de waterstand verandert als je de sluis aanpast.
+    </p>
+    <p>
+      We schrijven de toestand van het systeem als een vector <strong>x</strong>.
+      Dat is een lijst van alle dingen die het systeem &ldquo;weet&rdquo;: waterstand, doorstroming, sluispositie, enzovoort &mdash;
+      voor alle drie bassins samen zijn dat <strong>12 getallen</strong>.
+    </p>
+
+    <div class="eq">
+      x(k+1) &nbsp;=&nbsp; A &middot; x(k) &nbsp;+&nbsp; B &middot; u(k)
+      <span class="label">Hoe de toestand verandert van tijdstap k naar k+1</span>
+    </div>
+
+    <div class="eq-explain">
+      <span class="sym">x(k)</span><span class="desc">De huidige toestand &mdash; 12 getallen die het systeem beschrijven (waterstanden, debieten, sluisposities)</span>
+      <span class="sym">u(k)</span><span class="desc">De ingreep die de regelaar doet &mdash; de stand van de drie sluizen</span>
+      <span class="sym">A</span><span class="desc">De &ldquo;geheugenmatrix&rdquo;: hoe beïnvloedt de huidige toestand de volgende? (12&times;12 getallen)</span>
+      <span class="sym">B</span><span class="desc">De &ldquo;ingreepmatrix&rdquo;: hoe beïnvloedt een sluisbeweging de volgende toestand? (12&times;3 getallen)</span>
+    </div>
+
+    <p>
+      De sensor meet niet de volledige toestand, maar alleen de waterstanden:
+    </p>
+
+    <div class="eq">
+      y(k) &nbsp;=&nbsp; C &middot; x(k)
+      <span class="label">Wat de sensor meet (3 waterstanden uit de 12 toestanden)</span>
+    </div>
+
+    <div class="analogy">
+      <strong>&#x1F3CB; Vergelijk het met gewichtheffen:</strong><br>
+      Stel je duwt een gewicht omhoog (dat is <em>u</em>). De positie van het gewicht verandert daardoor (dat is <em>x</em>).
+      Matrix <em>A</em> beschrijft hoeveel het gewicht door de zwaartekracht naar beneden trekt,
+      matrix <em>B</em> beschrijft hoeveel jouw duw het gewicht omhoogbrengt.
+      Samen voorspellen ze precies waar het gewicht de volgende seconde zit.
+    </div>
+  </section>
+
+  <!-- Sectie 7: Voorspellen voor N stappen -->
+  <section class="math-section">
+    <h2>&#x1D40C; De wiskunde achter MPC &mdash; stap 2: voorspellen</h2>
+    <p>
+      De MPC wil <strong>10 stappen vooruitkijken</strong>. Hij herhaalt de formule
+      <span style="font-family:monospace">x(k+1) = A·x(k) + B·u(k)</span> tien keer achter elkaar.
+      Dat levert een groot rijtje voorspellingen op:
+    </p>
+
+    <div class="eq">
+      y(k+1) &nbsp;=&nbsp; C·A·x &nbsp;+&nbsp; C·B·u(0)<br>
+      y(k+2) &nbsp;=&nbsp; C·A<sup>2</sup>·x &nbsp;+&nbsp; C·A·B·u(0) &nbsp;+&nbsp; C·B·u(1)<br>
+      y(k+3) &nbsp;=&nbsp; C·A<sup>3</sup>·x &nbsp;+&nbsp; C·A<sup>2</sup>·B·u(0) &nbsp;+&nbsp; &hellip;
+      <span class="label">Elke rij: één tijdstap verder in de toekomst</span>
+    </div>
+
+    <p>
+      Al die rijen samen schrijven we in één grote matrixvermenigvuldiging:
+    </p>
+
+    <div class="eq">
+      <strong>Y</strong> &nbsp;=&nbsp; S<sub>x</sub> &middot; x &nbsp;+&nbsp; S<sub>u</sub> &middot; <strong>U</strong>
+      <span class="label">Alle voorspelde waterstanden (Y) als functie van beginstand (x) en toekomstige sluisstanden (U)</span>
+    </div>
+
+    <div class="eq-explain">
+      <span class="sym">Y</span><span class="desc">30 getallen: de voorspelde waterstand in bassin 1, 2 en 3 voor elk van de 10 stappen (3 &times; 10)</span>
+      <span class="sym">S<sub>x</sub></span><span class="desc">Beschrijft hoe de huidige begintoestand doorwerkt in de toekomst (30 &times; 12 matrix)</span>
+      <span class="sym">U</span><span class="desc">30 getallen: de sluisstanden die de regelaar wil plannen voor de 10 stappen (3 sluizen &times; 10 stappen)</span>
+      <span class="sym">S<sub>u</sub></span><span class="desc">Beschrijft hoe elke sluisbeweging doorwerkt op alle toekomstige waterstanden (30 &times; 30 matrix)</span>
+    </div>
+
+    <div class="example-box">
+      <strong>&#x1F4D0; Concreet:</strong><br>
+      Stel bassin 1 staat nu op 0.22 m en het setpoint is 0.25 m. De regelaar wil weten:
+      als ik sluis 1 de komende 10 seconden op stand 120 houd, wat is dan de waterstand na 1, 2, 3&hellip; seconden?
+      Die berekening doet <strong>S<sub>x</sub>·x + S<sub>u</sub>·U</strong> in één keer voor alle bassins en alle stappen tegelijk.
+    </div>
+  </section>
+
+  <!-- Sectie 8: De kostenfunctie -->
+  <section class="math-section">
+    <h2>&#x1D40C; De wiskunde achter MPC &mdash; stap 3: de beste keuze vinden</h2>
+    <p>
+      Nu weet de regelaar hoe het systeem reageert op elke mogelijke sluisvolgorde <strong>U</strong>.
+      Maar welke volgorde is <em>de beste</em>? Daarvoor definieert de MPC een <strong>kostenfunctie J</strong> &mdash;
+      een getal dat aangeeft hoe &ldquo;slecht&rdquo; een keuze is. Hoe lager J, hoe beter.
+    </p>
+
+    <div class="eq">
+      J &nbsp;=&nbsp; (Y &minus; Y<sub>ref</sub>)<sup>T</sup> &middot; Q&#772; &middot; (Y &minus; Y<sub>ref</sub>) &nbsp;+&nbsp; U<sup>T</sup> &middot; R&#772; &middot; U
+      <span class="label">Minimaliseer J over alle mogelijke sluisvolgorden U</span>
+    </div>
+
+    <div class="eq-explain">
+      <span class="sym">(Y &minus; Y<sub>ref</sub>)</span><span class="desc">Het verschil tussen de voorspelde waterstand en het setpoint &mdash; dit willen we zo klein mogelijk maken</span>
+      <span class="sym">Q&#772;</span><span class="desc">Hoe zwaar telt een afwijking van het setpoint mee? (hogere Q = setpoint is heel belangrijk)</span>
+      <span class="sym">U</span><span class="desc">De geplande sluisbewegingen &mdash; grote bewegingen kosten ook &ldquo;punten&rdquo;</span>
+      <span class="sym">R&#772;</span><span class="desc">Hoe zwaar tellen grote sluisbewegingen mee? (hogere R = zuinig zijn met sluisbewegingen)</span>
+    </div>
+
+    <div class="analogy">
+      <strong>&#x26BD; Vergelijk het met een voetbaltrainer:</strong><br>
+      Een trainer wil dat zijn team wint (waterstand dicht bij setpoint &rarr; lage eerste term),
+      maar wil ook niet dat de spelers zich uitputten (sluizen niet onnodig bewegen &rarr; lage tweede term).
+      De parameters Q en R zijn de balans: hoe belangrijk is winnen ten opzichte van energie besparen?<br><br>
+      In ons systeem gebruiken we <strong>Q = 10</strong> en <strong>R = 0.1</strong> &mdash;
+      de waterstand is 100 keer belangrijker dan het beperken van sluisbewegingen.
+    </div>
+
+    <p>
+      Het minimaliseren van J met een kwadratische functie heet een
+      <strong>kwadratisch programmeringsprobleem (QP)</strong>.
+      MATLAB's functie <code>quadprog</code> lost dit exact op.
+    </p>
+  </section>
+
+  <!-- Sectie 9: Beperkingen en infeasibility -->
+  <section class="math-section">
+    <h2>&#x1D40C; De wiskunde achter MPC &mdash; stap 4: de beperkingen</h2>
+    <p>
+      De regelaar mag niet zomaar <em>elke</em> sluisstand kiezen. Er zijn <strong>beperkingen</strong>
+      die beschrijven wat fysiek mogelijk is.
+    </p>
+
+    <ul class="constraint-list">
+      <li class="cl-blue">
+        <span class="icon">&#x1F6AA;</span>
+        <div>
+          <strong>Begrenzing sluisstand:</strong>
+          <div class="eq" style="margin:8px 0;font-size:0.95rem">
+            u<sub>min</sub> &nbsp;&le;&nbsp; u(k) &nbsp;&le;&nbsp; u<sub>max</sub>
+          </div>
+          De sluis staat tussen 0 (dicht) en 255 (volledig open). In Cantoni-eenheden: 0 tot 0.5.
+        </div>
+      </li>
+      <li class="cl-green">
+        <span class="icon">&#x1F4C9;</span>
+        <div>
+          <strong>Maximale stapgrootte:</strong>
+          <div class="eq" style="margin:8px 0;font-size:0.95rem">
+            |u(k) &minus; u(k&minus;1)| &nbsp;&le;&nbsp; &Delta;u<sub>max</sub>
+          </div>
+          De sluis mag per seconde niet meer dan een bepaald stuk bewegen &mdash;
+          te snelle bewegingen beschadigen het mechanisme.
+        </div>
+      </li>
+    </ul>
+
+    <h3>Wanneer botsen deze beperkingen?</h3>
+    <p>
+      Infeasibility treedt op wanneer er <em>geen enkele</em> waarde van U bestaat die aan alle
+      beperkingen tegelijk voldoet. Stel je voor op een getallenlijn:
+    </p>
+
+    <!-- Normale situatie -->
+    <p style="font-size:0.88rem;color:#555;margin-bottom:4px">&#x2705; Normale situatie &mdash; er is een geldig bereik:</p>
+    <div class="number-line">
+      <div class="nl-track"></div>
+      <div class="nl-ok"    style="left:20%;width:60%"></div>
+      <div class="nl-tick"  style="left:20%"></div>
+      <div class="nl-tick"  style="left:80%"></div>
+      <div class="nl-label" style="left:20%">u<sub>min</sub> = 0</div>
+      <div class="nl-label" style="left:80%">u<sub>max</sub> = 0.5</div>
+      <div class="nl-label" style="left:50%;color:#1e7e34;font-weight:600">geldig bereik</div>
+    </div>
+
+    <!-- Infeasible situatie -->
+    <p style="font-size:0.88rem;color:#555;margin-bottom:4px">&#x1F6A8; Infeasible situatie &mdash; beperkingen overlappen niet:</p>
+    <div class="number-line">
+      <div class="nl-track"></div>
+      <div class="nl-tick-red" style="left:55%"></div>
+      <div class="nl-tick-red" style="left:35%"></div>
+      <div class="nl-empty"   style="left:37%;width:17%"></div>
+      <div class="nl-label"   style="left:55%">u<sub>min</sub> (rate-eis)</div>
+      <div class="nl-label"   style="left:35%">u<sub>max</sub> (standgrens)</div>
+      <div class="nl-label"   style="left:46%;color:#d93025;font-weight:600">geen geldige u!</div>
+    </div>
+
+    <div class="example-box">
+      <strong>&#x1F4D0; Concreet voorbeeld met getallen:</strong><br>
+      Stel sluis 1 staat op <strong>u = 0.45</strong> (bijna maximaal open).
+      De rate-beperking zegt: <em>u mag maximaal 0.02 stijgen per stap</em>, dus u moet &ge; 0.43.
+      Maar de waterstand vraagt dat de sluis sluit naar u &le; 0.10.
+      De regelaar zoekt een u die zowel &ge; 0.43 als &le; 0.10 is &mdash;
+      dat bestaat niet. <strong>Infeasible.</strong>
+    </div>
+
+    <p>
+      MATLAB's <code>quadprog</code> detecteert dit automatisch: als het zoekgebied leeg is,
+      geeft de functie een lege oplossing terug. Dát is het signaal waarop ons alarm reageert.
+    </p>
+  </section>
+
+  <!-- Sectie 10: Samenvatting -->
+  <section>
+    <h2>&#x1F4CB; Samenvatting</h2>
+
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="icon">&#x1F9E9;</div>
+        <strong>Model: x(k+1) = Ax + Bu</strong>
+        Beschrijft hoe waterstand verandert na elke sluisbeweging
+      </div>
+      <div class="summary-card">
+        <div class="icon">&#x1F52D;</div>
+        <strong>Voorspelling: Y = S<sub>x</sub>x + S<sub>u</sub>U</strong>
+        Eén matrixvermenigvuldiging geeft alle waterstanden voor 10 stappen tegelijk
+      </div>
+      <div class="summary-card">
+        <div class="icon">&#x1F3AF;</div>
+        <strong>Kostenfunctie: min J</strong>
+        Balans tussen dicht bij setpoint blijven (Q) en zuinig bewegen (R)
+      </div>
+      <div class="summary-card">
+        <div class="icon">&#x1F6AB;</div>
+        <strong>Beperkingen botsen &rarr; infeasible</strong>
+        Als geen enkele sluisstand aan alle eisen tegelijk voldoet
+      </div>
+      <div class="summary-card">
+        <div class="icon">&#x1F522;</div>
+        <strong>Teller van 0 tot 3</strong>
+        Telt opeenvolgende mislukkingen. Reset zodra het &eacute;&eacute;n keer lukt
+      </div>
+      <div class="summary-card">
+        <div class="icon">&#x1F6A8;</div>
+        <strong>Alarm = alleen een signaal</strong>
+        Geen automatische actie &mdash; operator wordt gewaarschuwd
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    WIS Digital Twin &mdash; BEP 2026 &nbsp;|&nbsp; Gegenereerd op 27 mei 2026
+  </footer>
+
+</main>
+</body>
+</html>

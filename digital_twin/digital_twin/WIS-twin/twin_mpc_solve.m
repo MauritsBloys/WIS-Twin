@@ -1,4 +1,4 @@
-function u_mpc = twin_mpc_solve(A, B, C, x_hat, y_ref, Q_mpc, R_mpc, N, du_max, u_min, u_max, u_prev)
+function [u_mpc, infeasible] = twin_mpc_solve(A, B, C, x_hat, y_ref, Q_mpc, R_mpc, N, du_max, u_min, u_max, u_prev)
 %TWIN_MPC_SOLVE  Solve one MPC step using quadprog (receding horizon).
 %
 %   Builds prediction matrices Sx and Su, formulates a QP, solves with
@@ -67,9 +67,11 @@ opts = optimoptions('quadprog', 'Display', 'off');
 U_opt = quadprog(H_qp, f_qp, A_ineq, b_ineq, [], [], lb, ub, [], opts);
 
 if isempty(U_opt)
+    infeasible = true;
     warning('MPC: quadprog returned no solution, using u_prev');
     u_mpc = min(max(u_prev, u_min), u_max);
 else
+    infeasible = false;
     u_mpc = U_opt(1:nu);
 end
 end

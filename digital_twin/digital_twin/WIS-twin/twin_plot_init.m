@@ -107,38 +107,39 @@ if ~isempty(disturbance_epoch)
     end
 end
 
-%% Figuur 8: Lekkageflow en effectieve alpha (AEMF)
-handles.fig_leak = figure('Name', 'WIS — Lekkage (AEMF)', 'NumberTitle', 'off');
+%% Figuur 8: Geschatte alpha en beta per kanaal (AEMF H(q)x + (L(q)+aL1+bL2)z)
+handles.fig_leak = figure('Name', 'WIS — Lekkageparameters (AEMF)', 'NumberTitle', 'off');
 
-handles.ax_leak = subplot(2,1,1, 'Parent', handles.fig_leak);
-title(handles.ax_leak, 'Lekkageflow per kanaal [cm³/s]');
-xlabel(handles.ax_leak, 'Epoch (stap)'); ylabel(handles.ax_leak, 'cm³/s');
-grid(handles.ax_leak, 'on'); hold(handles.ax_leak, 'on');
-for i = 1:3
-    handles.h_qnom(i) = plot(handles.ax_leak, NaN, NaN, [colors{i} '--'], ...
-        'DisplayName', sprintf('q%d nominaal', i));
-    handles.h_qhat(i) = plot(handles.ax_leak, NaN, NaN, [colors{i} '-'], ...
-        'LineWidth', 1.5, 'DisplayName', sprintf('q%d geschat', i));
-end
-legend(handles.ax_leak, 'Location', 'best');
-
-handles.ax_alpha = subplot(2,1,2, 'Parent', handles.fig_leak);
-title(handles.ax_alpha, 'Effectieve \alpha per kanaal (nominaal = stippellijn)');
-xlabel(handles.ax_alpha, 'Epoch (stap)'); ylabel(handles.ax_alpha, '\alpha_{eff} [cm^{3/2}/s]');
+handles.ax_alpha = subplot(2,1,1, 'Parent', handles.fig_leak);
+title(handles.ax_alpha, 'Geschatte \alpha per kanaal  (z: y2 = \surd\Deltah)');
+xlabel(handles.ax_alpha, 'Epoch (stap)'); ylabel(handles.ax_alpha, '\alpha_{eff}  [cm^{1/2}]');
 grid(handles.ax_alpha, 'on'); hold(handles.ax_alpha, 'on');
 if ~isempty(Wis)
-    handles.alpha_nom = Wis.leak_alpha;
     for i = 1:3
         yline(handles.ax_alpha, Wis.leak_alpha(i), [colors{i} ':'], ...
             'LineWidth', 1.2, 'HandleVisibility', 'off');
     end
-else
-    handles.alpha_nom = [];
 end
 for i = 1:3
     handles.h_alpha(i) = plot(handles.ax_alpha, NaN, NaN, [colors{i} '-'], ...
-        'LineWidth', 1.5, 'DisplayName', sprintf('\\alpha_%d geschat', i));
+        'LineWidth', 1.5, 'DisplayName', sprintf('\\alpha_%d', i));
 end
 legend(handles.ax_alpha, 'Location', 'best');
+
+handles.ax_beta = subplot(2,1,2, 'Parent', handles.fig_leak);
+title(handles.ax_beta, 'Geschatte \beta per kanaal  (z: y3 = \Deltah^{3/2})');
+xlabel(handles.ax_beta, 'Epoch (stap)'); ylabel(handles.ax_beta, '\beta_{eff}  [cm^{3/2}]');
+grid(handles.ax_beta, 'on'); hold(handles.ax_beta, 'on');
+if ~isempty(Wis)
+    for i = 1:3
+        yline(handles.ax_beta, Wis.leak_beta(i), [colors{i} ':'], ...
+            'LineWidth', 1.2, 'HandleVisibility', 'off');
+    end
+end
+for i = 1:3
+    handles.h_beta(i) = plot(handles.ax_beta, NaN, NaN, [colors{i} '-'], ...
+        'LineWidth', 1.5, 'DisplayName', sprintf('\\beta_%d', i));
+end
+legend(handles.ax_beta, 'Location', 'best');
 
 end

@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AEMF Lekkagedetectie — Hoe werkt het?</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #f0f4f8;
+    color: #222;
+    line-height: 1.7;
+  }
+
+  header {
+    background: linear-gradient(135deg, #00897b, #004d40);
+    color: white;
+    padding: 40px 32px 32px;
+  }
+  header h1 { font-size: 2rem; margin-bottom: 6px; }
+  header p  { font-size: 1.05rem; opacity: 0.9; }
+
+  main {
+    max-width: 860px;
+    margin: 32px auto;
+    padding: 0 20px 60px;
+  }
+
+  section {
+    background: white;
+    border-radius: 12px;
+    padding: 28px 32px;
+    margin-bottom: 28px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  }
+
+  h2 {
+    font-size: 1.3rem;
+    color: #00897b;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  h3 { font-size: 1.05rem; color: #333; margin: 18px 0 8px; }
+
+  p  { margin-bottom: 12px; }
+
+  .analogy {
+    background: #e0f2f1;
+    border-left: 4px solid #00897b;
+    border-radius: 0 8px 8px 0;
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-style: italic;
+  }
+
+  .example-box {
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    font-size: 0.95rem;
+  }
+  .example-box strong { color: #00897b; }
+
+  .code-block {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 0.88rem;
+    line-height: 1.65;
+    overflow-x: auto;
+    margin: 16px 0;
+  }
+  .code-block .kw  { color: #569cd6; }
+  .code-block .cm  { color: #6a9955; font-style: italic; }
+  .code-block .str { color: #ce9178; }
+  .code-block .num { color: #b5cea8; }
+  .code-block .fn  { color: #dcdcaa; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.93rem;
+  }
+  th {
+    background: #00897b;
+    color: white;
+    padding: 10px 14px;
+    text-align: left;
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #eee;
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: #f8f9fa; }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin-top: 14px;
+  }
+  .summary-card {
+    background: #f0f4f8;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    font-size: 0.88rem;
+  }
+  .summary-card .icon { font-size: 2rem; margin-bottom: 6px; }
+  .summary-card strong { display: block; margin-bottom: 4px; font-size: 0.95rem; }
+
+  footer {
+    text-align: center;
+    font-size: 0.82rem;
+    color: #999;
+    margin-top: 8px;
+  }
+
+  /* Wiskunde */
+  .eq {
+    background: #f5fff8;
+    border: 1px solid #a5d6a7;
+    border-radius: 8px;
+    padding: 14px 22px;
+    margin: 16px 0;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 1.05rem;
+    text-align: center;
+    color: #1b5e20;
+    letter-spacing: 0.5px;
+  }
+  .eq .label {
+    display: block;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 0.78rem;
+    color: #888;
+    margin-top: 6px;
+    font-style: italic;
+    letter-spacing: 0;
+  }
+
+  .eq-explain {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px 14px;
+    background: #f1fff8;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 12px 0;
+    font-size: 0.92rem;
+  }
+  .eq-explain .sym {
+    font-family: 'Consolas', monospace;
+    color: #1b5e20;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .eq-explain .desc { color: #333; }
+
+  .math-section { border-left: 4px solid #00897b; }
+  .math-section h2 { color: #00695c; }
+
+  /* Pipeline-strip */
+  .pipeline {
+    display: flex;
+    gap: 0;
+    align-items: stretch;
+    flex-wrap: wrap;
+    margin: 20px 0;
+  }
+  .pipe-block {
+    flex: 1;
+    min-width: 120px;
+    text-align: center;
+    padding: 14px 8px;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    line-height: 1.4;
+    margin: 4px;
+  }
+  .pb-blue   { background: #e8f0fe; border: 2px solid #1a73e8; color: #0d47a1; }
+  .pb-green  { background: #e6f4ea; border: 2px solid #34a853; color: #1e7e34; }
+  .pb-teal   { background: #e0f2f1; border: 2px solid #00897b; color: #004d40; }
+  .pb-purple { background: #f3e5f5; border: 2px solid #7b1fa2; color: #4a148c; }
+  .pb-orange { background: #fff3e0; border: 2px solid #e65100; color: #bf360c; }
+  .pipe-arrow { display: flex; align-items: center; font-size: 1.4rem; color: #888; padding: 0 2px; flex-shrink: 0; }
+
+  /* z-vector visualisatie */
+  .zvec {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin: 16px 0;
+  }
+  .zvec-block {
+    padding: 10px 14px;
+    border-radius: 8px;
+    text-align: center;
+    min-width: 90px;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .zb-u   { background: #e8eaf6; border: 2px solid #3949ab; color: #1a237e; }
+  .zb-y   { background: #e0f2f1; border: 2px solid #00897b; color: #004d40; }
+  .zb-y2  { background: #fce4ec; border: 2px solid #c62828; color: #7f0000; }
+  .zb-y3  { background: #fff3e0; border: 2px solid #e65100; color: #bf360c; }
+  .zvec-label { font-size: 0.72rem; font-weight: 400; display: block; margin-top: 3px; }
+
+  .tag {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+  .tag-ok   { background: #e6f4ea; color: #1e7e34; }
+  .tag-warn { background: #fff3cd; color: #7a5000; }
+  .tag-teal { background: #e0f2f1; color: #004d40; }
+
+  .window-vis {
+    display: flex;
+    gap: 4px;
+    margin: 16px 0;
+    align-items: flex-end;
+  }
+  .wv-step {
+    flex: 1;
+    border-radius: 4px 4px 0 0;
+    text-align: center;
+    font-size: 0.7rem;
+    color: #fff;
+    font-weight: 700;
+    padding-top: 6px;
+  }
+  .wv-old { background: #b0bec5; height: 36px; }
+  .wv-win { background: #00897b; height: 52px; }
+  .wv-label { font-size: 0.72rem; color: #555; text-align: center; margin-top: 4px; }
+
+  .highlight-box {
+    background: #e0f2f1;
+    border: 2px solid #00897b;
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin: 18px 0;
+  }
+  .highlight-box strong { color: #004d40; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>&#x1F4A7; AEMF Lekkagedetectie</h1>
+  <p>Hoe de digitale tweeling merkt wanneer er water lekt door de sluizen &mdash; uitgelegd voor iedereen</p>
+</header>
+
+<main>
+
+  <!-- Sectie 1: Wat is het probleem? -->
+  <section>
+    <h2>&#x1F6B0; Wat is lekkage in dit systeem?</h2>
+    <p>
+      De drie waterbassins in de opstelling zijn verbonden via sluizen.
+      Zelfs wanneer een sluis <em>gesloten</em> staat, lekt er in de praktijk altijd een beetje water door
+      &mdash; door kleine kieren, slijtage, of onvolkomenheden in het mechanisme.
+      Dit heet <strong>lekkage</strong>.
+    </p>
+    <div class="analogy">
+      <strong>&#x1F6BF; Vergelijk het met een kraan die druipt:</strong><br>
+      Als je de kraan dichtdraait, verwacht je geen water meer. Maar een oude kraan druppelt toch.
+      Zo werkt het ook met de sluizen: in het wiskundige model van de digitale tweeling staat
+      &ldquo;sluis dicht = nul doorstroom&rdquo;, maar de werkelijkheid is anders.
+      Die afwijking is de lekkage.
+    </div>
+    <p>
+      Het probleem: als het model het gedrag van de bassins verkeerd beschrijft,
+      gaan de schattingen van de <strong>Kalman-filter</strong> de mist in.
+      De filter denkt dat het water op &eacute;&eacute;n plek staat, maar in werkelijkheid stroomt het langzaam weg.
+      Dat leidt tot foute regelacties.
+    </p>
+    <p>
+      De <strong>AEMF-module</strong> (Algebraic Error Model Filter) detecteert en schat deze lekkage automatisch,
+      zodat de rest van het systeem de juiste correcties kan toepassen.
+    </p>
+  </section>
+
+  <!-- Sectie 2: Hoe stroomt het water? (fysica) -->
+  <section>
+    <h2>&#x1F4D0; De fysica: hoe groot is de lek?</h2>
+    <p>
+      De hoeveelheid water die door een kier lekt hangt af van het <strong>hoogteverschil</strong> tussen de bassins.
+      Meer hoogteverschil = meer druk = meer doorstroming.
+      Dit is gebaseerd op de wet van Torricelli, dezelfde wet die beschrijft hoe snel water uit een gat in een emmer stroomt.
+    </p>
+    <p>
+      Voor elk sluisoppervlak <em>j</em> (j&nbsp;=&nbsp;1, 2 of 3) defini&euml;ren we:
+    </p>
+
+    <div class="eq">
+      &Delta;h<sub>j</sub> &nbsp;=&nbsp; hoogteverschil kanaal j &nbsp;[cm]
+      <span class="label">Positief als het water aan de bovenkant van de sluis hoger staat dan aan de onderkant</span>
+    </div>
+
+    <p>De lekkagekracht heeft twee termen, elk met een eigen co&euml;ffici&euml;nt:</p>
+
+    <div class="eq">
+      lekkage<sub>j</sub> &nbsp;=&nbsp; &alpha;<sub>j</sub> &middot; &radic;&Delta;h<sub>j</sub> &nbsp;+&nbsp; &beta;<sub>j</sub> &middot; &Delta;h<sub>j</sub><sup>3/2</sup>
+      <span class="label">De lekstroom door sluiskier j, als functie van het hoogteverschil</span>
+    </div>
+
+    <div class="eq-explain">
+      <span class="sym">&alpha;<sub>j</sub></span><span class="desc">De <em>lineaire</em> lekco&euml;ffici&euml;nt &mdash; beschrijft de kleine, directe doorstroming (eenheid: cm<sup>0.5</sup>)</span>
+      <span class="sym">&beta;<sub>j</sub></span><span class="desc">De <em>niet-lineaire</em> correctie &mdash; wordt belangrijk bij grotere hoogteverschillen (eenheid: cm<sup>1.5</sup>)</span>
+      <span class="sym">&radic;&Delta;h<sub>j</sub></span><span class="desc">Wortel van het hoogteverschil &mdash; noemen we <strong>y2</strong> in de code</span>
+      <span class="sym">&Delta;h<sub>j</sub><sup>3/2</sup></span><span class="desc">Hoogteverschil tot de macht 1.5 &mdash; noemen we <strong>y3</strong> in de code</span>
+    </div>
+
+    <div class="analogy">
+      <strong>&#x1F6B4; Vergelijk het met een fietsband leeglopen:</strong><br>
+      Een klein gaatje (kleine &Delta;h): de band loopt langzaam leeg, min of meer lineair.
+      Dat is de &alpha;-term. Een groot gat (groot &Delta;h): de band loopt veel sneller leeg,
+      niet evenredig maar exponenti&euml;ler. Dat is de &beta;-term. Samen beschrijven ze het volledige gedrag.
+    </div>
+
+    <p>
+      Het doel van de AEMF is: schat de 6 parameters (&alpha;<sub>1</sub>, &alpha;<sub>2</sub>, &alpha;<sub>3</sub>,
+      &beta;<sub>1</sub>, &beta;<sub>2</sub>, &beta;<sub>3</sub>) op basis van wat de sensoren meten,
+      zonder dat je de lekkage direct hoeft te meten.
+    </p>
+  </section>
+
+  <!-- Sectie 3: Signaalvector z -->
+  <section>
+    <h2>&#x1F4E6; De signaalvector z: wat &ldquo;weet&rdquo; het filter?</h2>
+    <p>
+      Het AEMF-filter werkt met een vector <strong>z</strong> van <em>bekende signalen</em>:
+      alle grootheden die we op elk moment kunnen meten of berekenen.
+      Die bundelen we samen in &eacute;&eacute;n grote vector van 12 getallen:
+    </p>
+
+    <div class="zvec">
+      <div class="zvec-block zb-u">u<sub>1,2,3</sub><span class="zvec-label">sluisstanden<br>(3 getallen)</span></div>
+      <div class="zvec-block zb-y">y<sub>1,2,3</sub><span class="zvec-label">waterpeilen<br>(3 getallen)</span></div>
+      <div class="zvec-block zb-y2">y2<sub>1,2,3</sub><span class="zvec-label">&radic;&Delta;h per kanaal<br>(3 getallen)</span></div>
+      <div class="zvec-block zb-y3">y3<sub>1,2,3</sub><span class="zvec-label">&Delta;h<sup>3/2</sup> per kanaal<br>(3 getallen)</span></div>
+    </div>
+
+    <div class="eq">
+      z(k) &nbsp;=&nbsp; [ u(k) &nbsp;; &nbsp; y(k) &nbsp;; &nbsp; y2(k) &nbsp;; &nbsp; y3(k) ]
+      <span class="label">12-dimensionale vector van bekende signalen op tijdstip k</span>
+    </div>
+
+    <p>
+      De eerste twee blokken (u en y) beschrijven het <em>normale</em> systeemgedrag zonder lekkage.
+      De laatste twee blokken (y2 en y3) zijn de <strong>lekkagesignalen</strong>:
+      ze zijn alleen groot als er een hoogteverschil is &eacute;n er dus lek kan optreden.
+    </p>
+
+    <div class="example-box">
+      <strong>&#x1F4A7; Voorbeeld met getallen:</strong><br>
+      Bassin 1 staat op 0.28&nbsp;m, bassin 2 op 0.20&nbsp;m, setpoints zijn 0.25 en 0.20&nbsp;m.<br>
+      &Delta;h<sub>1</sub> = (0.28 &minus; 0.20) &times; 100 = 8&nbsp;cm<br>
+      y2<sub>1</sub> = &radic;8 &asymp; 2.83&nbsp;cm<sup>0.5</sup><br>
+      y3<sub>1</sub> = 8<sup>3/2</sup> &asymp; 22.6&nbsp;cm<sup>1.5</sup><br>
+      Is het hoogteverschil nul? Dan is y2 = y3 = 0 &mdash; en heeft de lekkageterm geen effect.
+    </div>
+  </section>
+
+  <!-- Sectie 4: De grote vergelijking -->
+  <section class="math-section">
+    <h2>&#x1D40C; De grote vergelijking: H(q)x + L(q)z = 0</h2>
+    <p>
+      Het hart van de AEMF is &eacute;&eacute;n compacte vergelijking die het complete systeemgedrag beschrijft
+      &mdash; inclusief lekkage. Ze ziet er indrukwekkend uit, maar elk stuk heeft een duidelijke betekenis.
+    </p>
+
+    <div class="eq">
+      H(q) &middot; x &nbsp;+&nbsp; ( L(q) &nbsp;+&nbsp; &Sigma;<sub>j</sub> c<sub>j</sub> &middot; Lf<sub>j</sub> ) &middot; z &nbsp;=&nbsp; 0
+      <span class="label">De volledige systeembeschrijving in algebraïsche vorm (Gleizer, Mohajerin Esfahani, Keviczky 2024)</span>
+    </div>
+
+    <div class="eq-explain">
+      <span class="sym">x</span><span class="desc">De interne toestand van het systeem (12 getallen: waterstand, debiet, sluispositie per bassin)</span>
+      <span class="sym">z</span><span class="desc">De 12-dim signaalvector met bekende grootheden (zie vorig blok)</span>
+      <span class="sym">H(q)</span><span class="desc">De &ldquo;geheugenkant&rdquo;: beschrijft hoe de toestand x zich door de tijd gedraagt zonder lekkage. De <em>q</em> staat voor &ldquo;&eacute;&eacute;n tijdstap vooruit shiften&rdquo;: H bevat termen met zowel x(k+1) als x(k).</span>
+      <span class="sym">L(q)</span><span class="desc">De &ldquo;signaalkant&rdquo;: beschrijft hoe de bekende signalen z normaal terugkomen in de vergelijking (de regelaarsingang u en de meting y)</span>
+      <span class="sym">Lf<sub>j</sub></span><span class="desc">De <em>foutmatrix</em> voor kanaal j: beschrijft hoe de j-de lekkageparameter z be&iuml;nvloedt</span>
+      <span class="sym">c<sub>j</sub></span><span class="desc">De te schatten lekparameter (&alpha;<sub>j</sub> voor de &radic;&Delta;h-term, &beta;<sub>j</sub> voor de &Delta;h<sup>3/2</sup>-term)</span>
+    </div>
+
+    <p>
+      In ons systeem zijn er <strong>6 foutkanalen</strong>: 3 voor &alpha; (via y2) en 3 voor &beta; (via y3),
+      &eacute;&eacute;n per bassisgrens.
+    </p>
+
+    <div class="analogy">
+      <strong>&#x1F9FE; Vergelijk het met een kasboek:</strong><br>
+      H(q)x + L(q)z = 0 is het &ldquo;perfecte kasboek&rdquo;: inkomsten en uitgaven kloppen precies.
+      De foutmatrices Lf<sub>j</sub>&middot;c<sub>j</sub> zijn de &ldquo;verborgen uitgaven&rdquo; die het kasboek uit balans brengen.
+      Zolang er geen lekkage is (c<sub>j</sub> = 0) klopt het kasboek exact.
+      Zodra er lekkage is, verschijnt er een onverklaard tekort &mdash; dat is het signaal dat we zoeken.
+    </div>
+
+    <h3>Hoe H en L er concreet uitzien (15&times;12 matrices)</h3>
+    <p>
+      H en L zijn geen scalaire getallen maar <em>matrices</em>.
+      Voor ons 12-toestand, 3-ingang, 3-uitgangs-systeem zijn het matrices met 15 rijen en 12 kolommen.
+      De 15 rijen staan voor: 12 toestandsvergelijkingen (x<sub>1</sub>&hellip;x<sub>12</sub>) + 3 meetvergelijkingen (y<sub>1,2,3</sub>).
+    </p>
+
+    <div class="eq" style="font-size:0.9rem; text-align:left; padding: 16px 20px;">
+      H<sub>0</sub> = [&minus;A ; &minus;C] &nbsp;,&nbsp; H<sub>1</sub> = [I<sub>12</sub> ; 0]<br><br>
+      L<sub>0</sub> = [&minus;B &nbsp; 0 &nbsp; 0 &nbsp; 0 ;<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0 &nbsp; I<sub>3</sub> 0 &nbsp; 0 ]
+      <span class="label">
+        H bevat de systeemmatrices A en C. De q in H(q) betekent: rij 1&ndash;12 zegt &ldquo;x(k+1) = A&middot;x(k) + &hellip;&rdquo;, rij 13&ndash;15 zegt &ldquo;y(k) = C&middot;x(k)&rdquo;.<br>
+        L mapt ingang u (kolommen 1&ndash;3) en meting y (kolommen 4&ndash;6) op de signaalvector z.
+      </span>
+    </div>
+  </section>
+
+  <!-- Sectie 5: Het filter N(q) -->
+  <section class="math-section">
+    <h2>&#x1D40C; Het filter N(q): de nominale dynamica wegstrepen</h2>
+    <p>
+      Het idee is briljant eenvoudig: we zoeken een filter <strong>N(q)</strong> dat
+      de volledige nominale (lekvrije) vergelijking <em>annihileert</em>.
+      Na filtering blijft er alleen het lekkagesignaal over.
+    </p>
+
+    <div class="eq">
+      N(q) &middot; H(q) &nbsp;&equiv;&nbsp; 0
+      <span class="label">N is zo gekozen dat de gehele linker term verdwijnt</span>
+    </div>
+
+    <p>Daarna geldt:</p>
+
+    <div class="eq">
+      N(q)&middot;H(q)&middot;x &nbsp;+&nbsp; N(q)&middot;L(q)&middot;z &nbsp;+&nbsp; N(q)&middot;(&Sigma; c<sub>j</sub> Lf<sub>j</sub>)&middot;z &nbsp;=&nbsp; 0<br><br>
+      &#x21D3;<br><br>
+      <span style="color:#1b5e20;font-weight:700">0</span> &nbsp;+&nbsp; N(q)&middot;L(q)&middot;z &nbsp;+&nbsp; N(q)&middot;(&Sigma; c<sub>j</sub> Lf<sub>j</sub>)&middot;z &nbsp;=&nbsp; 0
+      <span class="label">De eerste term verdwijnt &mdash; wat overblijft bevat alleen nog de lekkageinformatie</span>
+    </div>
+
+    <div class="analogy">
+      <strong>&#x1F3A7; Vergelijk het met noise-cancelling in een koptelefoon:</strong><br>
+      Een noise-cancelling koptelefoon luistert naar het omgevingsgeluid en maakt precies het <em>tegengestelde</em> geluid.
+      Die twee heffen elkaar op &mdash; en wat overblijft is alleen de muziek.
+      N(q) doet hetzelfde: het maakt het &ldquo;tegengestelde&rdquo; van de nominale dynamica,
+      zodat die verdwijnt en alleen het lekkagesignaal overblijft.
+    </div>
+
+    <h3>Hoe berekenen we N?</h3>
+    <p>
+      We bouwen een grote blokkematrix <strong>H&#772;</strong> (de &ldquo;barrify&rdquo;-matrix):
+      een gestapelde versie van H over meerdere tijdstappen.
+      N zit dan in de <em>nulruimte</em> van de getransponeerde van H&#772;:
+      de verzameling van alle vectoren die, vermenigvuldigd met H&#772;<sup>T</sup>, nul geven.
+    </p>
+
+    <div class="eq">
+      H&#772; &nbsp;=&nbsp; barrify(H, p)<br><br>
+      N &nbsp;&isin;&nbsp; null( H&#772;<sup>T</sup> )
+      <span class="label">p is de filterorde &mdash; het aantal tijdstappen dat het filter &ldquo;terugkijkt&rdquo;</span>
+    </div>
+
+    <div class="example-box">
+      <strong>&#x1F50D; Waarom een nulruimte?</strong><br>
+      De nulruimte van een matrix M is de verzameling van alle vectoren v waarvoor M&middot;v = 0.
+      Als N in de nulruimte van H&#772;<sup>T</sup> zit, dan geldt automatisch N&middot;H &equiv; 0.
+      Het filter annihileert de nominale dynamica van nature &mdash; niet door toeval, maar door constructie.
+    </div>
+
+    <p>
+      Dit filter N wordt <strong>eenmalig offline</strong> berekend via <code>wis_aemf_filter_setup.m</code>
+      en opgeslagen. Online hoeft het systeem alleen N toe te passen op nieuwe datapunten &mdash;
+      dat is rekenkundig heel licht.
+    </p>
+  </section>
+
+  <!-- Sectie 6: Het residu -->
+  <section class="math-section">
+    <h2>&#x1D40C; Het residu e[k]: de ruwe foutmeting</h2>
+    <p>
+      Voordat N(q) kan worden toegepast, berekenen we op elk tijdstip een <strong>residu e[k]</strong>.
+      Dit is de &ldquo;foutterm&rdquo; van het systeem &mdash; hoeveel klopt het model op dit moment niet?
+    </p>
+
+    <div class="eq">
+      e(k) &nbsp;=&nbsp; [ x&#770;(k+1) &minus; A&middot;x&#770;(k) &minus; B&middot;u(k) ; &nbsp; innovatie(k) ]
+      <span class="label">Rijen 1&ndash;12: afwijking in de toestandsupdate. Rijen 13&ndash;15: Kalman-innovatie (y<sub>meas</sub> &minus; y<sub>pred</sub>)</span>
+    </div>
+
+    <div class="eq-explain">
+      <span class="sym">x&#770;(k)</span><span class="desc">De Kalman-schatting van de toestand op tijdstip k (wat de filter &ldquo;denkt&rdquo; dat de toestand is)</span>
+      <span class="sym">x&#770;(k+1) &minus; A&middot;x&#770;(k) &minus; B&middot;u(k)</span><span class="desc">Als het model perfect klopt, is dit nul. Een lekkage maakt dit niet nul &mdash; er is een onverklaard verschil.</span>
+      <span class="sym">innovatie(k)</span><span class="desc">Het verschil tussen de gemeten waterstand en de voorspelde waterstand door de Kalman-filter (ook nul bij een perfect model)</span>
+    </div>
+
+    <div class="analogy">
+      <strong>&#x1F4CA; Vergelijk het met een bedrijfsaudit:</strong><br>
+      Een accountant vergelijkt het verwachte saldo (op basis van alle bekende transacties) met het werkelijke saldo.
+      Het verschil is het &ldquo;onverklaard tekort&rdquo;. Dat tekort &mdash; het residu &mdash; is precies het signaal dat de AEMF analyseert.
+      Als het tekort een systematisch patroon heeft dat past bij lekkage, wordt dat herkend.
+    </div>
+
+    <p>
+      Na het berekenen van e[k] past het filter N toe om de nominale dynamica weg te strepen:
+    </p>
+
+    <div class="eq">
+      r(k) &nbsp;=&nbsp; N &middot; [ e(k) &nbsp; e(k&minus;1) &nbsp; &hellip; &nbsp; e(k&minus;p) ]
+      <span class="label">Het gefilterde residu: de nominale dynamica is weggestreept, alleen de lekkagehandtekening blijft</span>
+    </div>
+  </section>
+
+  <!-- Sectie 7: Schuifvenster -->
+  <section>
+    <h2>&#x1F5BC;&#xFE0F; Het schuifvenster van 20 stappen</h2>
+    <p>
+      De AEMF heeft niet &eacute;&eacute;n datapunt nodig, maar een <strong>history van metingen</strong>.
+      We houden altijd de laatste 20 tijdstappen bij in een &ldquo;schuifvenster&rdquo; (sliding window).
+      Elke seconde schuift het venster &eacute;&eacute;n stap op: de oudste stap valt eraf, de nieuwste stap komt erbij.
+    </p>
+
+    <div class="window-vis">
+      <div><div class="wv-step wv-old">k&minus;22</div></div>
+      <div><div class="wv-step wv-old">k&minus;21</div></div>
+      <div style="opacity:0.4"><div class="wv-step wv-old">&hellip;</div></div>
+      <div><div class="wv-step wv-win">k&minus;19</div></div>
+      <div><div class="wv-step wv-win">k&minus;18</div></div>
+      <div style="opacity:0.5"><div class="wv-step wv-win">&middot;&middot;&middot;</div></div>
+      <div><div class="wv-step wv-win">k&minus;1</div></div>
+      <div><div class="wv-step wv-win" style="background:#00695c">k</div></div>
+    </div>
+    <div style="display:flex;gap:20px;margin-top:-8px;margin-bottom:16px">
+      <span class="wv-label" style="color:#b0bec5">&#x25A0; verlaten</span>
+      <span class="wv-label" style="color:#00897b">&#x25A0; actief venster (20 stappen)</span>
+      <span class="wv-label" style="color:#00695c">&#x25A0; nieuwste stap</span>
+    </div>
+
+    <p>
+      Meer datapunten betekent een betrouwbaardere schatting. 20 stappen is een afweging:
+      genoeg voor een robuuste oplossing, maar niet zo lang dat verouderde data de schatting vertroebelen.
+    </p>
+
+    <div class="example-box">
+      <strong>&#x1F4F8; Vergelijk het met een lopend gemiddelde van de temperatuur:</strong><br>
+      Een weersstation berekent de gemiddelde temperatuur van de afgelopen 7 dagen, niet van de afgelopen 2 jaar.
+      Zo blijft het relevant voor het huidige weer. Het schuifvenster doet hetzelfde: alleen <em>recente</em> informatie telt mee.
+    </div>
+  </section>
+
+  <!-- Sectie 8: Kleinste kwadraten -->
+  <section class="math-section">
+    <h2>&#x1D40C; De wiskunde: kleinste-kwadratenschatting</h2>
+    <p>
+      Met het gefilterde residu r en de signaalvector z kunnen we nu de lekparameters schatten.
+      We bouwen een stelsel van vergelijkingen op:
+    </p>
+
+    <div class="eq">
+      E &middot; [ &alpha;<sub>1</sub> &alpha;<sub>2</sub> &alpha;<sub>3</sub> &nbsp;&beta;<sub>1</sub> &beta;<sub>2</sub> &beta;<sub>3</sub> ]<sup>T</sup> &nbsp;&asymp;&nbsp; r
+      <span class="label">E is de regressormatrix (opgebouwd uit de fouthandtekeningen M<sub>j</sub>&middot;z), r is het gefilterde residu</span>
+    </div>
+
+    <p>
+      De matrix <strong>E</strong> heeft voor elk tijdstip k en elk lekkagekanaal j &eacute;&eacute;n kolom.
+      Hoe groter y2<sub>j</sub> of y3<sub>j</sub> is, des te groter is die kolom &mdash;
+      grote hoogteverschillen geven duidelijkere lekkagesignalen.
+    </p>
+
+    <p>
+      We lossen dit op met de <strong>pseudoinverse</strong> (kleinste-kwadratenmethode):
+    </p>
+
+    <div class="eq">
+      [ &alpha;&#770; ; &beta;&#770; ] &nbsp;=&nbsp; E<sup>+</sup> &middot; r &nbsp;&nbsp;&nbsp;(met E<sup>+</sup> = pinv(E))
+      <span class="label">De schatting die de totale kwadratische afwijking minimaliseert</span>
+    </div>
+
+    <div class="analogy">
+      <strong>&#x1F4C8; Vergelijk het met een lineaire regressie:</strong><br>
+      Stel je wilt de hellingshoek van een berg schatten op basis van hoogtemetingen.
+      Je hebt 20 meetpunten, maar ze kloppen niet perfect door meetruis.
+      De kleinste-kwadratenmethode trekt de <em>best passende rechte lijn</em> door al die punten.
+      Precies zo schat AEMF de best passende lekparameters door alle residu-datapunten.
+    </div>
+
+    <h3>Hoe betrouwbaar is de schatting? &mdash; &sigma;<sub>min</sub></h3>
+    <p>
+      Niet altijd kan het filter een goede schatting maken.
+      Als de hoogteverschillen te klein zijn (bijna geen lekkagedruk), dan is y2 &asymp; 0 en y3 &asymp; 0.
+      De regressormatrix E wordt dan bijna nul &mdash; er is simpelweg geen informatie in het signaal.
+    </p>
+
+    <div class="eq">
+      &sigma;<sub>min</sub> &nbsp;=&nbsp; ( kleinste singuliere waarde van E )<sup>2</sup>
+      <span class="label">Maat voor de observeerbaarheid: hoe goed &ldquo;zichtbaar&rdquo; is de lekkage in de data?</span>
+    </div>
+
+    <div class="eq-explain">
+      <span class="sym">&sigma;<sub>min</sub> groot</span><span class="desc">De lekkage is goed zichtbaar in de data. De schatting is betrouwbaar.</span>
+      <span class="sym">&sigma;<sub>min</sub> &asymp; 0</span><span class="desc">De lekkage is niet observeerbaar in de huidige data (bijv. alle bassins op gelijk niveau). De schatting wordt als NaN (onbekend) teruggegeven.</span>
+    </div>
+
+    <div class="example-box">
+      <strong>&#x1F4A1; Eenvoudig voorbeeld:</strong><br>
+      Als alle drie bassins precies op hetzelfde peil staan (&Delta;h = 0), is y2 = y3 = 0.
+      Dan bevat E alleen nullen. Welke &alpha; en &beta; je ook kiest, E&middot;[&alpha;;&beta;] = 0 altijd.
+      De oplossing is niet uniek &mdash; we kunnen niets schatten. Het systeem rapporteert dan:
+      <em>&ldquo;Lekkage niet observeerbaar (sigma_min&sup2; = 0.00e+00)&rdquo;</em>
+    </div>
+  </section>
+
+  <!-- Sectie 9: De volledige pipeline -->
+  <section>
+    <h2>&#x1F504; De volledige verwerkingspijplijn</h2>
+    <p>Elke seconde doorloopt de AEMF-module de volgende stappen:</p>
+
+    <div class="pipeline">
+      <div class="pipe-block pb-blue">&#x1F4CA;<br>Kalman-filter<br><small>geeft x&#770;(k) en innovatie(k)</small></div>
+      <div class="pipe-arrow">&#8594;</div>
+      <div class="pipe-block pb-green">&#x1F4D0;<br>Bereken e(k)<br><small>toestandsresidu + innovatie</small></div>
+      <div class="pipe-arrow">&#8594;</div>
+      <div class="pipe-block pb-teal">&#x1F9F9;<br>Filter N<br><small>r(k) = N&middot;e(k&hellip;k-p)</small></div>
+      <div class="pipe-arrow">&#8594;</div>
+      <div class="pipe-block pb-purple">&#x1F9EE;<br>Bouw E op<br><small>regressor via M<sub>j</sub>&middot;z</small></div>
+      <div class="pipe-arrow">&#8594;</div>
+      <div class="pipe-block pb-orange">&#x1F3AF;<br>pinv(E)&middot;r<br><small>schat &alpha; en &beta;</small></div>
+    </div>
+
+    <p>
+      De filters <strong>N</strong> en de handtekeningmatrices <strong>M<sub>j</sub> = N&middot;Lf<sub>j</sub></strong>
+      worden <em>eenmalig offline</em> berekend via het script <code>wis_aemf_filter_setup.m</code>
+      en opgeslagen in <code>data/wis_aemf_filter.mat</code>.
+      De digitale tweeling laadt dit bestand bij het opstarten en voert dan elke seconde alleen de lichte online berekening uit.
+    </p>
+
+    <div class="highlight-box">
+      <strong>Terugvalmodus</strong><br>
+      Als het filterbestand niet bestaat (of de AEMF-berekening mislukt), schakelt het systeem automatisch over
+      op een vereenvoudigde terugvalmodus: directe kleinste-kwadratenschatting rechtstreeks op de Kalman-innovaties,
+      zonder het N-filter. De nauwkeurigheid is lager, maar het systeem blijft volledig functioneren.
+    </div>
+  </section>
+
+  <!-- Sectie 10: Waarvoor gebruik je de uitkomst? -->
+  <section>
+    <h2>&#x1F6E0;&#xFE0F; Wat doe je met de geschatte &alpha; en &beta;?</h2>
+    <p>
+      De geschatte lekparameters worden <strong>live geplot</strong> in figuur 8 van de digitale tweeling.
+      Je kunt er direct uit aflezen hoe groot de lekkage per kanaal is en of die in de loop van de tijd toeneemt.
+    </p>
+
+    <table>
+      <tr>
+        <th>Situatie</th>
+        <th>Wat het betekent</th>
+        <th>Mogelijke actie</th>
+      </tr>
+      <tr>
+        <td>&alpha;<sub>j</sub> en &beta;<sub>j</sub> dicht bij nul</td>
+        <td>Kanaal j lekt nauwelijks</td>
+        <td>Niets nodig</td>
+      </tr>
+      <tr>
+        <td>&alpha;<sub>j</sub> stijgt terwijl &beta;<sub>j</sub> klein blijft</td>
+        <td>Kleine kier in de sluis, lineair lekgedrag</td>
+        <td>Sluis controleren op slijtage</td>
+      </tr>
+      <tr>
+        <td>Beide &alpha;<sub>j</sub> en &beta;<sub>j</sub> groot</td>
+        <td>Aanzienlijke lekkage, ook bij grotere hoogteverschillen</td>
+        <td>Modelparameters aanpassen of sluis vervangen</td>
+      </tr>
+      <tr>
+        <td>NaN-waarden / sigma_min &asymp; 0</td>
+        <td>Lekkage momenteel niet meetbaar (te weinig hoogteverschil)</td>
+        <td>Wacht tot bassins uit balans lopen; geen alarm</td>
+      </tr>
+    </table>
+
+    <p>
+      Na een run zijn ook de <strong>geschatte lekkagecurves</strong> beschikbaar via <code>twin_plot_leakage_curves</code>:
+      een grafiek die toont hoe de lekstroom verloopt als functie van het hoogteverschil,
+      gebaseerd op de gevonden &alpha; en &beta;-waarden.
+    </p>
+  </section>
+
+  <!-- Sectie 11: De code -->
+  <section>
+    <h2>&#x1F4BB; Hoe ziet dit eruit in de code?</h2>
+    <p>Hieronder de kern van de online AEMF-schatting in de hoofdlus van de digitale tweeling:</p>
+
+    <div class="code-block">
+<span class="cm">% Schuif de buffers één stap op (sliding window van 20 stappen)</span>
+innov_buf  = [innov_buf(:,  <span class="num">2</span>:end), innov];
+hest_buf   = [hest_buf(:,   <span class="num">2</span>:end), h_est_abs];
+xhat_buf   = [xhat_buf(:,   <span class="num">2</span>:end), x_hat];
+u_aemf_buf = [u_aemf_buf(:, <span class="num">2</span>:end), u_kal];
+
+<span class="cm">% Schat alpha en beta zodra het venster vol is</span>
+<span class="kw">if</span> step >= FAULT_WINDOW
+    [alpha_now, beta_now, sigma_min] = <span class="fn">twin_estimate_leakage_alphabeta</span>( ...
+        innov_buf, hest_buf, Wis, wl_idx, C, n_states, ...
+        xhat_buf, u_aemf_buf, aemf_filt);   <span class="cm">% 9 args = AEMF-modus</span>
+<span class="kw">end</span>
+    </div>
+
+    <p>De schattingsfunctie kiest zelf welke modus te gebruiken:</p>
+
+    <div class="code-block">
+<span class="cm">% AEMF-modus als filter beschikbaar is én geen NaN in de buffers</span>
+use_aemf = nargin >= <span class="num">9</span> &amp;&amp; ~isempty(aemf_filt) &amp;&amp; ...
+           ~any(isnan(xhat_hist(:))) &amp;&amp; ~any(isnan(u_hist(:)));
+
+<span class="kw">if</span> use_aemf
+    [alpha_eff, beta_eff, sigma_min] = <span class="fn">estimate_aemf</span>(...);
+<span class="kw">else</span>
+    [alpha_eff, beta_eff, sigma_min] = <span class="fn">estimate_fallback</span>(...);  <span class="cm">% terugvalmodus</span>
+<span class="kw">end</span>
+    </div>
+
+    <p>Het <strong>setupscript</strong> hoef je maar &eacute;&eacute;n keer uit te voeren:</p>
+
+    <div class="code-block">
+<span class="cm">% Eenmalig uitvoeren (vanuit WIS-twin/): berekent het filter</span>
+<span class="fn">run</span>(<span class="str">'wis_aemf_filter_setup.m'</span>)
+
+<span class="cm">% Resultaat opgeslagen in:</span>
+<span class="cm">%   WIS-twin/data/wis_aemf_filter.mat</span>
+<span class="cm">% De digitale tweeling laadt dit automatisch bij het opstarten.</span>
+    </div>
+  </section>
+
+  <!-- Sectie 12: Samenvatting -->
+  <section>
+    <h2>&#x1F4CB; Samenvatting</h2>
+
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="icon">&#x1F6B0;</div>
+        <strong>Lekkage = &alpha;&radic;&Delta;h + &beta;&Delta;h<sup>3/2</sup></strong>
+        Twee nichtlineaire termen beschrijven de lekstroom per sluiskier
+      </div>
+      <div class="summary-card">
+        <div class="icon">&#x1F4E6;</div>
+        <strong>z = [u; y; y2; y3]</strong>
+        12 bekende signalen gebundeld in &eacute;&eacute;n vector per tijdstap
+      </div>
+      <div class="summary-card">
+        <div class="icon">&#x1F9F9;</div>
+        <strong>N(q) annihileert H(q)</strong>
+        Het filter streept de nominale dynamica weg &mdash; alleen lekkage blijft over
+      </div>
+      <div class="summary-card">
+        <div class="icon">&#x1F4CA;</div>
+        <strong>Residu e[k]</strong>
+        Verschil tussen Kalman-voorspelling en werkelijkheid = lekkagehandtekening
+      </div>
+      <div class="summary-card">
+        <div class="icon">&#x1F5BC;&#xFE0F;</div>
+        <strong>Schuifvenster: 20 stappen</strong>
+        Recente data telt; verouderde informatie valt automatisch weg
+      </div>
+      <div class="summary-card">
+        <div class="icon">&#x1F3AF;</div>
+        <strong>pinv(E)&middot;r = 6 parameters</strong>
+        Kleinste kwadraten schat &alpha;<sub>1,2,3</sub> en &beta;<sub>1,2,3</sub> tegelijk
+      </div>
+      <div class="summary-card">
+        <div class="icon">&#x1F4D0;</div>
+        <strong>&sigma;<sub>min</sub>: observeerbaarheid</strong>
+        Te klein? Dan is er niet genoeg signaal &mdash; schatting wordt als NaN gerapporteerd
+      </div>
+      <div class="summary-card">
+        <div class="icon">&#x1F4BE;</div>
+        <strong>Setup eenmalig offline</strong>
+        wis_aemf_filter_setup.m berekent N en M<sub>j</sub>; online is alleen pinv nodig
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    WIS Digital Twin &mdash; BEP 2026 &nbsp;|&nbsp; Gegenereerd op 28 mei 2026
+  </footer>
+
+</main>
+</body>
+</html>
