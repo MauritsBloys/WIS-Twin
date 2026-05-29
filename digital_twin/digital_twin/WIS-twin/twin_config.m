@@ -29,7 +29,7 @@ end
 N      = 10;             % prediction horizon [tijdstappen]
 Q_mpc  = 1000 * eye(3);  % weging op setpuntafwijking — groot vanwege zwakke B-koppeling op 1 Hz
 R_mpc  = 0.001 * eye(3); % weging op regelmoeite — klein zodat MPC actief bijstuurt
-du_max = 25/510;         % max regelaarverandering per stap [Cantoni] = 25 servo-stappen/s
+du_max = 50/510;         % max regelaarverandering per stap [Cantoni] = 50 servo-stappen/s
 u_min  = zeros(3,1);     % ondergrens (sluis dicht)
 u_max  = 0.5 * ones(3,1); % bovengrens (~volledig open in Cantoni signaalruimte)
 

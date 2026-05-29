@@ -325,15 +325,16 @@ while step < MAX_STEPS
         Q_mpc_eff(3,3) = 0;
     end
 
-    % Vervang de waterstandtoestanden in x_hat door de directe meting.
-    % De Kalman-gain convergeert na ~20 stappen naar een kleine waarde,
-    % waarna x_hat(wl_idx) kan driften naar nul terwijl y_meas nog fout is.
-    % Door de ruwe afwijking te injecteren reageert de MPC altijd op de
-    % werkelijke fout, ongeacht modelafwijkingen of Kalman-convergentie.
-    x_hat_mpc = x_hat;
+    % Bouw x_hat_mpc: alleen waterstandtoestanden gevuld met de directe meting.
+    % Niet-waterstand-toestanden (debiet, sluispositie, actuator) op nul.
+    % Reden: de Kalman-schatting van die toestanden is onbetrouwbaar bij
+    % model-plant mismatch; via de A-matrix (factor ~180) versterken foute
+    % waarden tot meters per stap in de QP-voorspelling, waardoor de MPC
+    % ten onrechte alle sluizen dicht houdt.
+    x_hat_mpc = zeros(size(x_hat));
     x_hat_mpc(wl_idx) = y_meas - y_ref;
 
-    [u_mpc, mpc_infeasible] = twin_mpc_solve(A, B, C, x_hat_mpc, zeros(size(C,1),1), Q_mpc_eff, R_mpc, N, du_max, u_min, u_max, u_prev);
+    [u_mpc, mpc_infeasible] = twin_mpc_solve(A, B, C, x_hat_mpc, zeros(size(C,1),1), Q_mpc_eff, R_mpc, N, du_max, u_min, u_max, u_prev, d_leak);
     if mpc_infeasible
         mpc_fail_count = mpc_fail_count + 1;
         if mpc_fail_count >= 3 && ~mpc_alarm
@@ -392,7 +393,7 @@ while step < MAX_STEPS
 
     %% 4. MPC predicted trajectory for plotting (inclusief lekkage)
     mpc_traj = zeros(3, N);
-    x_tmp = x_hat;
+    x_tmp = x_hat_mpc;   % gebruik gecorrigeerde begintoestand (niet x_hat)
     for i = 1:N
         h_tmp         = C * x_tmp + y_ref;
         d_mpc         = twin_compute_leakage(h_tmp, Wis, wl_idx, size(A,1)) - d_leak_nom;
