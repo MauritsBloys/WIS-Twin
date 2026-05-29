@@ -33,6 +33,13 @@ du_max = 50/510;         % max regelaarverandering per stap [Cantoni] = 50 servo
 u_min  = zeros(3,1);     % ondergrens (sluis dicht)
 u_max  = 0.5 * ones(3,1); % bovengrens (~volledig open in Cantoni signaalruimte)
 
+% B-matrix schaalfactor voor de MPC (niet voor Kalman).
+% De Cantoni-plant heeft een dubbele integrerende modus (eigenwaarden 0,0 in
+% continue tijd) waardoor B[waterstand, u] ≈ 45 m/Cantoni is na ZOH op 1 Hz.
+% Dit maakt Su ≈ 45×k per stap → u_opt = error/Su ≈ 0.06/247 ≈ 0.0002 Cantoni.
+% Door B te schalen naar 1/1000 wordt Su ≈ 0.045×k → u_opt ≈ 0.3 Cantoni. ✓
+B_mpc_scale = 1e-3;
+
 % Setpoints [m]
 y_ref = [0.25; 0.20; 0.15];
 

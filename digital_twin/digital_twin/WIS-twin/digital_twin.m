@@ -334,7 +334,11 @@ while step < MAX_STEPS
     x_hat_mpc = zeros(size(x_hat));
     x_hat_mpc(wl_idx) = y_meas - y_ref;
 
-    [u_mpc, mpc_infeasible] = twin_mpc_solve(A, B, C, x_hat_mpc, zeros(size(C,1),1), Q_mpc_eff, R_mpc, N, du_max, u_min, u_max, u_prev, d_leak);
+    % B * B_mpc_scale: schaal de B-matrix naar beneden voor de QP.
+    % De dubbele integrerende modus van het Cantoni-model geeft B[waterstand,u]≈45
+    % m/Cantoni na ZOH op 1 Hz. Su groeit dan als 45×k → u_opt = error/Su ≈ 0.0002
+    % Cantoni (= 0.1 servo). Met schaal 1/1000: Su ≈ 0.045×k → u_opt ≈ 0.3 Cantoni.
+    [u_mpc, mpc_infeasible] = twin_mpc_solve(A, B * B_mpc_scale, C, x_hat_mpc, zeros(size(C,1),1), Q_mpc_eff, R_mpc, N, du_max, u_min, u_max, u_prev, d_leak);
     if mpc_infeasible
         mpc_fail_count = mpc_fail_count + 1;
         if mpc_fail_count >= 3 && ~mpc_alarm
@@ -397,7 +401,7 @@ while step < MAX_STEPS
     for i = 1:N
         h_tmp         = C * x_tmp + y_ref;
         d_mpc         = twin_compute_leakage(h_tmp, Wis, wl_idx, size(A,1)) - d_leak_nom;
-        x_tmp         = A * x_tmp + B * u_mpc + d_mpc;
+        x_tmp         = A * x_tmp + B * B_mpc_scale * u_mpc + d_mpc;
         mpc_traj(:,i) = C * x_tmp + y_ref;
     end
 
