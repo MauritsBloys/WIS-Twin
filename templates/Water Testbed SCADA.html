@@ -702,76 +702,53 @@
       </div>
     </div>
 
-    <!-- Bin levels + trend -->
+    <!-- AEMF Lekkageflow (vervangt Bin Levels) -->
     <div class="card">
       <div class="card-head">
-        <h2>Bin Levels · PT-1…7</h2>
-        <span class="card-sub">cm · 60s trend</span>
+        <h2>AEMF Lekkageflow</h2>
+        <span class="card-sub" id="aemf-epoch">geen twin-data</span>
       </div>
-      <div class="card-body" id="bin-body">
-      <div class="bin-row">
-        <span class="tag-chip pt">PT-01</span>
-        <svg class="spark" viewBox="0 0 100 22" preserveAspectRatio="none">
-          <path class="spark-fill" d=""></path>
-          <path class="spark-line" d=""></path>
-        </svg>
-        <span class="cm">—</span>
+      <div class="card-body">
+        <div class="bin-row">
+          <span class="tag-chip pt" id="aemf-lbl-1" style="color:var(--cyan);border-color:rgba(79,195,247,0.4);min-width:52px;text-align:center">B0→P1</span>
+          <svg class="spark" id="aemf-spark-1" viewBox="0 0 100 22" preserveAspectRatio="none">
+            <path class="spark-fill" d=""></path><path class="spark-line" d=""></path>
+          </svg>
+          <span class="cm" id="aemf-val-1">—</span>
+        </div>
+        <div class="bin-row">
+          <span class="tag-chip pt" id="aemf-lbl-2" style="color:var(--cyan);border-color:rgba(79,195,247,0.4);min-width:52px;text-align:center">P1→P2</span>
+          <svg class="spark" id="aemf-spark-2" viewBox="0 0 100 22" preserveAspectRatio="none">
+            <path class="spark-fill" d=""></path><path class="spark-line" d=""></path>
+          </svg>
+          <span class="cm" id="aemf-val-2">—</span>
+        </div>
+        <div class="bin-row">
+          <span class="tag-chip pt" id="aemf-lbl-3" style="color:var(--cyan);border-color:rgba(79,195,247,0.4);min-width:52px;text-align:center">P2→P3</span>
+          <svg class="spark" id="aemf-spark-3" viewBox="0 0 100 22" preserveAspectRatio="none">
+            <path class="spark-fill" d=""></path><path class="spark-line" d=""></path>
+          </svg>
+          <span class="cm" id="aemf-val-3">—</span>
+        </div>
+        <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--line);display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px">
+          <div style="font-family:'JetBrains Mono';font-size:9px">
+            <div style="color:var(--ink-mute);text-transform:uppercase;letter-spacing:.08em">Nom B0→P1</div>
+            <div id="aemf-nom-1" style="color:var(--ink-dim);margin-top:2px">— cm³/s</div>
+          </div>
+          <div style="font-family:'JetBrains Mono';font-size:9px">
+            <div style="color:var(--ink-mute);text-transform:uppercase;letter-spacing:.08em">Nom P1→P2</div>
+            <div id="aemf-nom-2" style="color:var(--ink-dim);margin-top:2px">— cm³/s</div>
+          </div>
+          <div style="font-family:'JetBrains Mono';font-size:9px">
+            <div style="color:var(--ink-mute);text-transform:uppercase;letter-spacing:.08em">Nom P2→P3</div>
+            <div id="aemf-nom-3" style="color:var(--ink-dim);margin-top:2px">— cm³/s</div>
+          </div>
+        </div>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line);display:flex;align-items:center;gap:8px">
+          <span style="font-family:'JetBrains Mono';font-size:9px;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap">MPC QP</span>
+          <span id="mpc-alarm-badge" style="font-family:'JetBrains Mono';font-size:10px;padding:2px 8px;border-radius:3px;background:rgba(255,255,255,0.05);color:var(--ink-mute)">—</span>
+        </div>
       </div>
-    
-      <div class="bin-row">
-        <span class="tag-chip pt">PT-02</span>
-        <svg class="spark" viewBox="0 0 100 22" preserveAspectRatio="none">
-          <path class="spark-fill" d=""></path>
-          <path class="spark-line" d=""></path>
-        </svg>
-        <span class="cm">—</span>
-      </div>
-    
-      <div class="bin-row">
-        <span class="tag-chip pt">PT-03</span>
-        <svg class="spark" viewBox="0 0 100 22" preserveAspectRatio="none">
-          <path class="spark-fill" d=""></path>
-          <path class="spark-line" d=""></path>
-        </svg>
-        <span class="cm">—</span>
-      </div>
-    
-      <div class="bin-row">
-        <span class="tag-chip pt">PT-04</span>
-        <svg class="spark" viewBox="0 0 100 22" preserveAspectRatio="none">
-          <path class="spark-fill" d=""></path>
-          <path class="spark-line" d=""></path>
-        </svg>
-        <span class="cm">—</span>
-      </div>
-    
-      <div class="bin-row">
-        <span class="tag-chip pt">PT-05</span>
-        <svg class="spark" viewBox="0 0 100 22" preserveAspectRatio="none">
-          <path class="spark-fill" d=""></path>
-          <path class="spark-line" d=""></path>
-        </svg>
-        <span class="cm">—</span>
-      </div>
-    
-      <div class="bin-row">
-        <span class="tag-chip pt">PT-06</span>
-        <svg class="spark" viewBox="0 0 100 22" preserveAspectRatio="none">
-          <path class="spark-fill" d=""></path>
-          <path class="spark-line" d=""></path>
-        </svg>
-        <span class="cm">—</span>
-      </div>
-    
-      <div class="bin-row">
-        <span class="tag-chip pt">PT-07</span>
-        <svg class="spark" viewBox="0 0 100 22" preserveAspectRatio="none">
-          <path class="spark-fill" d=""></path>
-          <path class="spark-line" d=""></path>
-        </svg>
-        <span class="cm">—</span>
-      </div>
-    </div>
     </div>
   </div>
 
@@ -904,6 +881,99 @@
 </div>
 
 <div id="toast" class="toast"></div>
+
+<script>
+(function () {
+  var hist = [[], [], []];
+  var N = 40;
+
+  function spark(id, data) {
+    var svg = document.getElementById(id);
+    if (!svg || data.length < 2) return;
+    var mn = Math.min.apply(null, data);
+    var mx = Math.max.apply(null, data);
+    var rng = mx - mn || 1;
+    var W = 100, H = 22, p = 2;
+    var pts = data.map(function (v, i) {
+      return [(p + i / (data.length - 1) * (W - 2 * p)).toFixed(1),
+              (H - p - (v - mn) / rng * (H - 2 * p)).toFixed(1)];
+    });
+    var line = 'M' + pts.map(function (q) { return q[0] + ',' + q[1]; }).join(' L');
+    var fill = 'M' + pts[0][0] + ',' + H + ' ' +
+               pts.map(function (q) { return 'L' + q[0] + ',' + q[1]; }).join(' ') +
+               ' L' + pts[pts.length - 1][0] + ',' + H + ' Z';
+    svg.querySelectorAll('.spark-line')[0].setAttribute('d', line);
+    svg.querySelectorAll('.spark-fill')[0].setAttribute('d', fill);
+  }
+
+  function pollLeakage() {
+    fetch('/api/twin/leakage')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var ep = document.getElementById('aemf-epoch');
+        if (!d.available) {
+          if (ep) ep.textContent = d.epoch ? ('epoch ' + d.epoch + ' · wacht op AEMF…') : 'geen twin-data';
+          return;
+        }
+        if (ep) ep.textContent = 'epoch ' + d.epoch;
+        var qe = [+d.q_est_1, +d.q_est_2, +d.q_est_3];
+        var qn = [+d.q_nom_1, +d.q_nom_2, +d.q_nom_3];
+        for (var i = 0; i < 3; i++) {
+          hist[i].push(qe[i]);
+          if (hist[i].length > N) hist[i].shift();
+          spark('aemf-spark-' + (i + 1), hist[i]);
+          var over = qe[i] > qn[i] * 1.15;
+          var valEl = document.getElementById('aemf-val-' + (i + 1));
+          if (valEl) {
+            valEl.textContent = qe[i].toFixed(1) + ' cm³/s';
+            valEl.style.color = over ? 'var(--amber)' : 'var(--ink)';
+          }
+          var lblEl = document.getElementById('aemf-lbl-' + (i + 1));
+          if (lblEl) {
+            lblEl.style.color = over ? 'var(--amber)' : 'var(--cyan)';
+            lblEl.style.borderColor = over ? 'rgba(255,181,71,0.4)' : 'rgba(79,195,247,0.4)';
+          }
+          var nomEl = document.getElementById('aemf-nom-' + (i + 1));
+          if (nomEl) nomEl.textContent = qn[i].toFixed(1) + ' cm³/s';
+        }
+      })
+      .catch(function () {
+        var ep = document.getElementById('aemf-epoch');
+        if (ep) ep.textContent = 'geen twin-data';
+      });
+  }
+
+  function pollMpcAlarm() {
+    fetch('/api/twin/mpc-alarm')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var badge = document.getElementById('mpc-alarm-badge');
+        if (!badge) return;
+        if (!d.available) {
+          badge.textContent = '—';
+          badge.style.background = 'rgba(255,255,255,0.05)';
+          badge.style.color = 'var(--ink-mute)';
+          return;
+        }
+        if (d.alarm) {
+          badge.textContent = 'ALARM · QP infeasible (' + (d.fail_count || '?') + ' stappen)';
+          badge.style.background = 'rgba(255,92,108,0.15)';
+          badge.style.color = 'var(--red)';
+        } else {
+          badge.textContent = 'OK · stap ' + (d.step || '—');
+          badge.style.background = 'rgba(79,195,247,0.12)';
+          badge.style.color = 'var(--cyan)';
+        }
+      })
+      .catch(function () {});
+  }
+
+  setInterval(pollLeakage, 2000);
+  setInterval(pollMpcAlarm, 2000);
+  pollLeakage();
+  pollMpcAlarm();
+}());
+</script>
 
 <!-- Tweak defaults (persisted via __edit_mode_set_keys) -->
 <script>

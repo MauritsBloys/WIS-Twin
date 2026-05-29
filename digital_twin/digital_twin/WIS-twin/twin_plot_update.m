@@ -1,7 +1,7 @@
-function twin_plot_update(handles, t_vec, y_hist, y_pred_hist, innov_hist, u_hist, K_diag_hist, mpc_traj, ~, y_nompc_hist, alpha_hat_hist, beta_hat_hist)
+function twin_plot_update(handles, t_vec, y_hist, y_pred_hist, innov_hist, u_hist, K_diag_hist, mpc_traj, ~, y_nompc_hist, alpha_hat_hist, beta_hat_hist, q_leak_est_hist, q_leak_nom_hist)
 %TWIN_PLOT_UPDATE  Refresh all live plot windows with current history.
-%   Call every time step inside the main loop.
-%   alpha_hat_hist, beta_hat_hist zijn optioneel (AEMF lekkageparameter plots).
+%   alpha_hat_hist, beta_hat_hist optioneel (AEMF params, fig 8).
+%   q_leak_est_hist, q_leak_nom_hist optioneel (lekkageflow [cm³/s], fig 9).
 
 for i = 1:3
     set(handles.h_meas(i),  'XData', t_vec, 'YData', y_hist(i,:));
@@ -37,6 +37,22 @@ if nargin >= 12 && isfield(handles, 'h_alpha')
         valid = ~isnan(beta_hat_hist(i,:));
         if any(valid)
             set(handles.h_beta(i), 'XData', t_vec(valid), 'YData', beta_hat_hist(i, valid));
+        end
+    end
+end
+
+% Figuur 9: lekkageflow per kanaal [cm³/s]
+if nargin >= 14 && isfield(handles, 'h_qest')
+    for i = 1:3
+        valid_e = ~isnan(q_leak_est_hist(i,:));
+        valid_n = ~isnan(q_leak_nom_hist(i,:));
+        if any(valid_e)
+            q_over = q_leak_est_hist(i,:) - q_leak_nom_hist(i,:);
+            set(handles.h_qest(i),  'XData', t_vec(valid_e), 'YData', q_leak_est_hist(i, valid_e));
+            set(handles.h_qover(i), 'XData', t_vec(valid_e), 'YData', q_over(valid_e));
+        end
+        if any(valid_n)
+            set(handles.h_qnom(i), 'XData', t_vec(valid_n), 'YData', q_leak_nom_hist(i, valid_n));
         end
     end
 end

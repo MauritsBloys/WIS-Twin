@@ -152,7 +152,9 @@ y_pred_hist    = zeros(3, MAX_STEPS);
 innov_hist     = zeros(3, MAX_STEPS);
 u_hist         = zeros(3, MAX_STEPS);
 K_diag_hist    = zeros(3, MAX_STEPS);
-y_nompc_hist   = nan(3,  MAX_STEPS);
+y_nompc_hist    = nan(3, MAX_STEPS);
+q_leak_est_hist = nan(3, MAX_STEPS);   % geschatte q_leak per kanaal [cm³/s]
+q_leak_nom_hist = nan(3, MAX_STEPS);   % nominale  q_leak per kanaal [cm³/s]
 
 %% AEMF lekkagefout-schatting buffers  (H(q)x + (L(q)+aL1+bL2)z formulering)
 FAULT_WINDOW   = 20;
@@ -282,6 +284,37 @@ while step < MAX_STEPS
         end
     end
 
+    %% 2c. Lekkageflow berekenen (voor live plot en SCADA)
+    h_abs_now = C * x_hat + y_ref;
+    Dh_cm_now = max(0, [Wis.h0 - h_abs_now(1); ...
+                        h_abs_now(1) - h_abs_now(2); ...
+                        h_abs_now(2) - h_abs_now(3)]) * 100;
+    q_nom_now = Wis.leak_alpha(:) .* sqrt(Dh_cm_now) + Wis.leak_beta(:) .* Dh_cm_now.^1.5;
+    q_leak_nom_hist(:, step) = q_nom_now;
+
+    lk_available = step >= FAULT_WINDOW && ~any(isnan(alpha_hat_hist(:, step)));
+    if lk_available
+        alpha_k   = alpha_hat_hist(:, step);
+        beta_k    = beta_hat_hist(:,  step);
+        q_est_now = max(0, alpha_k .* sqrt(Dh_cm_now) + beta_k .* Dh_cm_now.^1.5);
+        q_leak_est_hist(:, step) = q_est_now;
+    else
+        q_est_now = zeros(3, 1);
+    end
+
+    if USE_HARDWARE && USE_FLASK_API
+        try
+            lk_payload = struct( ...
+                'epoch',   epoch, ...
+                'available', double(lk_available), ...
+                'q_est_1', q_est_now(1), 'q_est_2', q_est_now(2), 'q_est_3', q_est_now(3), ...
+                'q_nom_1', q_nom_now(1), 'q_nom_2', q_nom_now(2), 'q_nom_3', q_nom_now(3));
+            webwrite([FLASK_URL '/api/twin/leakage'], lk_payload, ...
+                weboptions('MediaType', 'application/json', 'Timeout', 1));
+        catch
+        end
+    end
+
     %% 3. MPC
     [u_mpc, mpc_infeasible] = twin_mpc_solve(A, B, C, x_hat, zeros(size(C,1),1), Q_mpc, R_mpc, N, du_max, u_min, u_max, u_prev);
     if mpc_infeasible
@@ -296,6 +329,15 @@ while step < MAX_STEPS
             mpc_alarm = false;
         end
         mpc_fail_count = 0;
+    end
+    if USE_HARDWARE && USE_FLASK_API
+        try
+            webwrite([FLASK_URL '/api/twin/mpc-alarm'], ...
+                struct('available', 1, 'alarm', double(mpc_alarm), ...
+                       'fail_count', mpc_fail_count, 'step', step), ...
+                weboptions('MediaType', 'application/json', 'Timeout', 1));
+        catch
+        end
     end
     u_prev = u_mpc;
 
@@ -348,7 +390,8 @@ while step < MAX_STEPS
         twin_plot_update(plt, t_vec(:,1:step), y_hist(:,1:step), y_pred_hist(:,1:step), ...
                          innov_hist(:,1:step), u_hist(:,1:step), K_diag_hist(:,1:step), ...
                          mpc_traj, y_ref, y_nompc_hist(:,1:step), ...
-                         alpha_hat_hist(:,1:step), beta_hat_hist(:,1:step));
+                         alpha_hat_hist(:,1:step), beta_hat_hist(:,1:step), ...
+                         q_leak_est_hist(:,1:step), q_leak_nom_hist(:,1:step));
     end
 
     pause(H_LOOP);

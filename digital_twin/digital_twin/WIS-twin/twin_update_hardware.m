@@ -104,6 +104,15 @@ else
     end
     mpc_fail_count = 0;
 end
+if USE_FLASK_API
+    try
+        webwrite([FLASK_URL '/api/twin/mpc-alarm'], ...
+            struct('available', 1, 'alarm', double(mpc_alarm), ...
+                   'fail_count', mpc_fail_count, 'step', epoch), ...
+            weboptions('MediaType', 'application/json', 'Timeout', 1));
+    catch
+    end
+end
 u_mpc_prev = u_mpc;
 
 % MPC-trajectvoorspelling inclusief lekkage

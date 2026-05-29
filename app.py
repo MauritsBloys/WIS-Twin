@@ -218,6 +218,11 @@ def firefly_mode(mode):
 
 
 # ── Routes: Meting lekkage ──────────────────────────────────────────────────
+_twin_leakage_lock  = threading.Lock()
+_twin_leakage_state = {'available': 0}
+_twin_mpc_lock  = threading.Lock()
+_twin_mpc_state = {'available': 0}
+
 _meas_lock       = threading.Lock()
 _meas_running    = False
 _meas_data       = []        # list of {t, s1..s7}
@@ -290,6 +295,36 @@ def meting_data():
         chunk = list(_meas_data[since:])
         total = since + len(chunk)
     return jsonify({'data': chunk, 'total': total})
+
+
+@app.route('/api/twin/leakage', methods=['GET'])
+def twin_leakage_get():
+    with _twin_leakage_lock:
+        return jsonify(dict(_twin_leakage_state))
+
+
+@app.route('/api/twin/leakage', methods=['POST'])
+def twin_leakage_post():
+    data = request.get_json(silent=True) or {}
+    with _twin_leakage_lock:
+        _twin_leakage_state.update(data)
+        _twin_leakage_state['ts'] = time.time()
+    return jsonify({'ok': True})
+
+
+@app.route('/api/twin/mpc-alarm', methods=['GET'])
+def twin_mpc_alarm_get():
+    with _twin_mpc_lock:
+        return jsonify(dict(_twin_mpc_state))
+
+
+@app.route('/api/twin/mpc-alarm', methods=['POST'])
+def twin_mpc_alarm_post():
+    data = request.get_json(silent=True) or {}
+    with _twin_mpc_lock:
+        _twin_mpc_state.update(data)
+        _twin_mpc_state['ts'] = time.time()
+    return jsonify({'ok': True})
 
 
 @app.route('/api/meting/export')
