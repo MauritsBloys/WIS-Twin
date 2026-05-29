@@ -40,10 +40,11 @@ if isnan(servo_g4) || servo_g4 < 0 || servo_g4 > 255
     warning('digital_twin: ongeldige overloopsluis positie — gebruik 0.');
     servo_g4 = 0;
 end
+h_overflow_g4 = servo_g4 * h_overflow_per_servo;   % [m] — afgeleid uit sluispositie
 fprintf('Setpoints:      [%.3f  %.3f  %.3f] m\n',          y_ref(1),      y_ref(2),      y_ref(3));
 fprintf('Beginposities:  [%3d  %3d  %3d] servo  →  [%.3f  %.3f  %.3f] Cantoni\n', ...
         servo_init(1), servo_init(2), servo_init(3), u_init(1), u_init(2), u_init(3));
-fprintf('Overloopsluis:  sluis 4 = %d servo\n', servo_g4);
+fprintf('Overloopsluis:  sluis 4 = %d servo  →  h_overflow = %.3f m\n', servo_g4, h_overflow_g4);
 
 %% Load plant matrices from pre-computed workspace
 % comb_plant_cont is the continuous-time Cantoni plant (Ap, Bp, Cp).
@@ -315,8 +316,24 @@ while step < MAX_STEPS
         end
     end
 
-    %% 3. MPC
-    [u_mpc, mpc_infeasible] = twin_mpc_solve(A, B, C, x_hat, zeros(size(C,1),1), Q_mpc, R_mpc, N, du_max, u_min, u_max, u_prev);
+    %% 3. MPC — overflow-bewuste gewichten + meting-gebaseerde waterstandcorrectie
+    % Als pool 3 op/boven het overflow-niveau van sluis 4 zit, verwijder de
+    % tracking-strafterm voor pool 3. De MPC kan dan sluis 2 vrijuit openen
+    % om pool 2 te draineren: extra water in pool 3 loopt weg via sluis 4.
+    Q_mpc_eff = Q_mpc;
+    if y_meas(3) >= h_overflow_g4 - 0.005
+        Q_mpc_eff(3,3) = 0;
+    end
+
+    % Vervang de waterstandtoestanden in x_hat door de directe meting.
+    % De Kalman-gain convergeert na ~20 stappen naar een kleine waarde,
+    % waarna x_hat(wl_idx) kan driften naar nul terwijl y_meas nog fout is.
+    % Door de ruwe afwijking te injecteren reageert de MPC altijd op de
+    % werkelijke fout, ongeacht modelafwijkingen of Kalman-convergentie.
+    x_hat_mpc = x_hat;
+    x_hat_mpc(wl_idx) = y_meas - y_ref;
+
+    [u_mpc, mpc_infeasible] = twin_mpc_solve(A, B, C, x_hat_mpc, zeros(size(C,1),1), Q_mpc_eff, R_mpc, N, du_max, u_min, u_max, u_prev);
     if mpc_infeasible
         mpc_fail_count = mpc_fail_count + 1;
         if mpc_fail_count >= 3 && ~mpc_alarm
@@ -340,6 +357,18 @@ while step < MAX_STEPS
         end
     end
     u_prev = u_mpc;
+
+    % Diagnostiek elke 10 stappen: toon verschil Kalman vs. meting
+    if mod(step, 10) == 0
+        fprintf(['Stap %3d | Kalman wl=[%+.4f %+.4f %+.4f] | ' ...
+                 'Meting wl=[%+.4f %+.4f %+.4f] | ' ...
+                 'u=[%.3f %.3f %.3f] servo=[%3d %3d %3d]\n'], ...
+            step, ...
+            x_hat(wl_idx(1)), x_hat(wl_idx(2)), x_hat(wl_idx(3)), ...
+            y_meas(1)-y_ref(1), y_meas(2)-y_ref(2), y_meas(3)-y_ref(3), ...
+            u_mpc(1), u_mpc(2), u_mpc(3), ...
+            round(u_mpc(1)*510), round(u_mpc(2)*510), round(u_mpc(3)*510));
+    end
 
     %% 3b. Stuur MPC-commando naar hardware
     if USE_HARDWARE && USE_FLASK_API

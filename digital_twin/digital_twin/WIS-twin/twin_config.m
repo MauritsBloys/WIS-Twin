@@ -36,6 +36,11 @@ u_max  = 0.5 * ones(3,1); % bovengrens (~volledig open in Cantoni signaalruimte)
 % Setpoints [m]
 y_ref = [0.25; 0.20; 0.15];
 
+% Overloopsluis (sluis 4) kalibratieconstante
+% Gecalibreerd: servo 55 → 0.20 m overstroominghoogte in pool 3.
+% h_overflow_g4 wordt automatisch berekend uit servo_g4 (ingelezen via dialog).
+h_overflow_per_servo = 0.20 / 55;   % [m / servo-eenheid]
+
 % Loop timing: 0 = zo snel mogelijk (testen), 1 = real-time 1 Hz
 if USE_HARDWARE
     H_LOOP = 1;   % real-time 1 Hz — één Kalman+MPC stap per seconde
