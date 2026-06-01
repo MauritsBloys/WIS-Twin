@@ -32,7 +32,7 @@ legend(handles.ax_levels, 'Location', 'best');
 handles.fig_u = figure('Name', 'WIS — MPC stuurcommando', 'NumberTitle', 'off');
 handles.ax_u  = axes('Parent', handles.fig_u);
 title(handles.ax_u, 'MPC control input');
-xlabel(handles.ax_u, 'Epoch (stap)'); ylabel(handles.ax_u, 'Cantoni');
+xlabel(handles.ax_u, 'Epoch (stap)'); ylabel(handles.ax_u, 'Servo [0–255]');
 grid(handles.ax_u, 'on'); hold(handles.ax_u, 'on');
 for i = 1:3
     handles.h_u(i) = plot(handles.ax_u, NaN, NaN, [colors{i} '-'], 'DisplayName', sprintf('u%d', i));
@@ -144,27 +144,28 @@ legend(handles.ax_beta, 'Location', 'best');
 
 %% Figuur 9: Lekkageflow per kanaal [cm³/s]
 handles.fig_qflow = figure('Name', 'WIS — Lekkageflow (AEMF)', 'NumberTitle', 'off', ...
-    'Color', 'white', 'Position', [200 200 860 480]);
+    'Color', 'white', 'Position', [200 200 900 520]);
 
 handles.ax_qflow = subplot(2, 1, 1, 'Parent', handles.fig_qflow);
-title(handles.ax_qflow, 'Geschatte lekkageflow q_{leak}  vs. nominaal');
+title(handles.ax_qflow, 'Lekkageflow q_{leak}: schatting (doorgetrokken) vs. nominaal (streep)');
 xlabel(handles.ax_qflow, 'Epoch (stap)');
 ylabel(handles.ax_qflow, 'q  [cm^3/s]');
 grid(handles.ax_qflow, 'on'); hold(handles.ax_qflow, 'on');
+ylim(handles.ax_qflow, [0 inf]);
 for i = 1:3
     handles.h_qest(i) = plot(handles.ax_qflow, NaN, NaN, [colors{i} '-'],  ...
-        'LineWidth', 2,   'DisplayName', sprintf('q_{est,%d}', i));
-    handles.h_qnom(i) = plot(handles.ax_qflow, NaN, NaN, [colors{i} ':'],  ...
+        'LineWidth', 2.5, 'DisplayName', sprintf('q_{est,%d} (AEMF)', i));
+    handles.h_qnom(i) = plot(handles.ax_qflow, NaN, NaN, [colors{i} '--'], ...
         'LineWidth', 1.2, 'DisplayName', sprintf('q_{nom,%d}', i));
 end
 legend(handles.ax_qflow, 'Location', 'northwest');
 
 handles.ax_qover = subplot(2, 1, 2, 'Parent', handles.fig_qflow);
-title(handles.ax_qover, 'Lekkage-overschot  \Deltaq = q_{est} - q_{nom}');
+title(handles.ax_qover, 'Lekkage-overschot  \Deltaq = q_{est} - q_{nom}  (positief = extra lek)');
 xlabel(handles.ax_qover, 'Epoch (stap)');
 ylabel(handles.ax_qover, '\Deltaq  [cm^3/s]');
 grid(handles.ax_qover, 'on'); hold(handles.ax_qover, 'on');
-yline(handles.ax_qover, 0, 'k:', 'HandleVisibility', 'off');
+yline(handles.ax_qover, 0, 'k-', 'LineWidth', 1.2, 'HandleVisibility', 'off');
 for i = 1:3
     handles.h_qover(i) = plot(handles.ax_qover, NaN, NaN, [colors{i} '-'], ...
         'LineWidth', 1.5, 'DisplayName', sprintf('\\Deltaq_%d', i));

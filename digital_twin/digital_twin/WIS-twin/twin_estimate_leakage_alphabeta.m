@@ -93,19 +93,20 @@ for k = 1:n_r
     r_filt(:, k) = N_rf * ek_stack;
 end
 
-% ---- Regressormatrix E via M_j graad-0 coefficient ----
+% ---- Regressormatrix E via M_j(q)*z[k] = sum_{i=0}^p M_j_i * z[k+i] ----
+% Ma_rows{j} = rowForm van M{j} = [M_0, M_1, ..., M_p] (breedte nz*(p+1)).
+% Gebruik het volledige gestapelde z-venster, analoog aan ek_stack voor r_filt.
 n_eqs = n_r * m;
 E_mat = zeros(n_eqs, 6);
 r_vec = reshape(r_filt, [], 1);
 
 for k = 1:n_r
-    zk   = z(:, k);
     rows = (k-1)*m + (1:m);
     for j = 1:3
-        Ma0 = af.Ma_rows{j}(:, 1:nz);
-        Mb0 = af.Mb_rows{j}(:, 1:nz);
-        E_mat(rows, j)   = Ma0 * zk;
-        E_mat(rows, j+3) = Mb0 * zk;
+        pa = af.Ma_deg(j);
+        pb = af.Mb_deg(j);
+        E_mat(rows, j)   = af.Ma_rows{j} * reshape(z(:, k:k+pa), [], 1);
+        E_mat(rows, j+3) = af.Mb_rows{j} * reshape(z(:, k:k+pb), [], 1);
     end
 end
 
@@ -117,11 +118,13 @@ end
 
 params    = pinv(E_mat(valid,:)) * r_vec(valid);
 sigma_min = min(svd(E_mat(valid,:)))^2;
+if sigma_min < 1e-10
+    alpha_eff = nan(3,1);
+    beta_eff  = nan(3,1);
+    return
+end
 alpha_eff = Wis.leak_alpha(:) + params(1:3);
 beta_eff  = Wis.leak_beta(:)  + params(4:6);
-if sigma_min < 1e-10
-    [alpha_eff, beta_eff, sigma_min] = nan_result(Wis);
-end
 end
 
 % =========================================================================
@@ -166,11 +169,13 @@ end
 
 params    = pinv(E(valid,:)) * r_vec(valid);
 sigma_min = min(svd(E(valid,:)))^2;
+if sigma_min < 1e-6
+    alpha_eff = nan(3,1);
+    beta_eff  = nan(3,1);
+    return
+end
 alpha_eff = Wis.leak_alpha(:) + params(1:3);
 beta_eff  = Wis.leak_beta(:)  + params(4:6);
-if sigma_min < 1e-6
-    [alpha_eff, beta_eff, sigma_min] = nan_result(Wis);
-end
 end
 
 % =========================================================================
@@ -179,6 +184,6 @@ function y1 = compute_y1(h, h0)
 y1 = max(0, [h0 - h(1); h(1) - h(2); h(2) - h(3)] * 100);
 end
 
-function [a, b, s] = nan_result(Wis)
+function [a, b, s] = nan_result(~)
 a = nan(3,1);  b = nan(3,1);  s = 0;
 end

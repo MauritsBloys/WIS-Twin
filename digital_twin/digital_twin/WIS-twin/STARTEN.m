@@ -3,15 +3,22 @@
 % Dit bestand bevat alle commando's om de digital twin en het dashboard
 % op te starten. Kopieer de relevante regels naar de MATLAB Command Window.
 
-%% ── 0. Q/R RUIS-COVARIANTIE SCHATTEN (eenmalig, vóór eerste gebruik) ────
+%% ── 0. EENMALIGE SETUP (vóór eerste gebruik) ────────────────────────────
 %
-%  Voer dit eenmalig uit om Q en R te schatten uit echte sensordata.
-%  Vereist: data/data.csv (kolommen: t_s, s1_cm..s7_cm, gates gesloten).
-%  Resultaat wordt opgeslagen in data/Q_R_estimated.mat en automatisch
-%  geladen door twin_config.m bij elke volgende run.
+%  0a. Q/R ruis-covariantie schatten uit echte sensordata.
+%      Vereist: data/data.csv (kolommen: t_s, s1_cm..s7_cm, gates gesloten).
+%      Resultaat → data/Q_R_estimated.mat (auto-geladen door twin_config.m).
 
 cd(fileparts(which('digital_twin')))
 schat_Q_R
+
+%  0b. AEMF-filtermatrices bouwen voor lekkagedetectie.
+%      Vereist: WIS-sim/simulation/distributed_workspace.mat.
+%      Resultaat → data/wis_aemf_filter.mat (auto-geladen door digital_twin.m).
+%      N.B. digital_twin.m genereert dit ook automatisch als het ontbreekt.
+
+cd(fileparts(which('digital_twin')))
+wis_aemf_filter_setup
 
 %% ── 1. DIGITAL TWIN (simulator-modus) ───────────────────────────────────
 %

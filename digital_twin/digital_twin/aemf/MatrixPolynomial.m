@@ -105,7 +105,7 @@ classdef MatrixPolynomial
         function result = clean(obj)
             cellArray = obj.Coefficients;
             cellArray = cellfun(@cleanMatrix, cellArray, 'UniformOutput', false);
-            nonZeroMatrices = ~cellfun(@(x) all(x==0), cellArray); % Find matrices that are not all zeros
+            nonZeroMatrices = ~cellfun(@(x) all(x(:)==0), cellArray); % Find matrices that are not all zeros
             lastNonZeroMatrixIndex = find(nonZeroMatrices, 1, 'last'); % Get the index of the last non-zero matrix
             if isempty(lastNonZeroMatrixIndex) % Retain the zero matrix
                 cellArray{1} = 0*cellArray{1};

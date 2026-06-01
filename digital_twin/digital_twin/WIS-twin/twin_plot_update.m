@@ -3,10 +3,12 @@ function twin_plot_update(handles, t_vec, y_hist, y_pred_hist, innov_hist, u_his
 %   alpha_hat_hist, beta_hat_hist optioneel (AEMF params, fig 8).
 %   q_leak_est_hist, q_leak_nom_hist optioneel (lekkageflow [cm³/s], fig 9).
 
+cantoni_to_servo = 255 / 0.5;   % u_max = 0.5 Cantoni → servo 255
+
 for i = 1:3
     set(handles.h_meas(i),  'XData', t_vec, 'YData', y_hist(i,:));
     set(handles.h_pred(i),  'XData', t_vec, 'YData', y_pred_hist(i,:));
-    set(handles.h_u(i),     'XData', t_vec, 'YData', u_hist(i,:));
+    set(handles.h_u(i),     'XData', t_vec, 'YData', u_hist(i,:) * cantoni_to_servo);
     set(handles.h_innov(i), 'XData', t_vec, 'YData', innov_hist(i,:));
     set(handles.h_kg(i),    'XData', t_vec, 'YData', K_diag_hist(i,:));
 end
@@ -17,7 +19,6 @@ for i = 1:3
 end
 
 if nargin >= 10 && ~isempty(y_nompc_hist)
-    cantoni_to_servo = 255 / 0.5;   % u_max = 0.5 Cantoni → servo 255
     for i = 1:3
         set(handles.h_cmp_mpc(i), 'XData', t_vec, 'YData', y_hist(i,:));
         set(handles.h_cmp_nom(i), 'XData', t_vec, 'YData', y_nompc_hist(i,:));
@@ -42,18 +43,20 @@ if nargin >= 12 && isfield(handles, 'h_alpha')
 end
 
 % Figuur 9: lekkageflow per kanaal [cm³/s]
+% Gebruik altijd de volledige t_vec als XData zodat de x-as het volledige
+% simulatiebereik toont. NaN-waarden in YData worden niet gerenderd maar
+% bewaren de correcte aslimiet.
 if nargin >= 14 && isfield(handles, 'h_qest')
     for i = 1:3
-        valid_e = ~isnan(q_leak_est_hist(i,:));
-        valid_n = ~isnan(q_leak_nom_hist(i,:));
-        if any(valid_e)
-            q_over = q_leak_est_hist(i,:) - q_leak_nom_hist(i,:);
-            set(handles.h_qest(i),  'XData', t_vec(valid_e), 'YData', q_leak_est_hist(i, valid_e));
-            set(handles.h_qover(i), 'XData', t_vec(valid_e), 'YData', q_over(valid_e));
-        end
-        if any(valid_n)
-            set(handles.h_qnom(i), 'XData', t_vec(valid_n), 'YData', q_leak_nom_hist(i, valid_n));
-        end
+        q_over = q_leak_est_hist(i,:) - q_leak_nom_hist(i,:);
+        set(handles.h_qest(i),  'XData', t_vec, 'YData', q_leak_est_hist(i,:));
+        set(handles.h_qnom(i),  'XData', t_vec, 'YData', q_leak_nom_hist(i,:));
+        set(handles.h_qover(i), 'XData', t_vec, 'YData', q_over);
+    end
+    % Forceer x-as op hetzelfde bereik als het bovenpaneel, ook als q_over
+    % volledig NaN is (AEMF niet beschikbaar) — anders klapt de as in.
+    if min(t_vec) < max(t_vec)
+        xlim(handles.ax_qover, [min(t_vec), max(t_vec)]);
     end
 end
 
