@@ -6,8 +6,8 @@ if isempty(mfilename('fullpath'))
 end
 
 % Data source
-USE_HARDWARE  = true;   % true = hardware data, false = internal plant simulator
-USE_FLASK_API = true;   % true = lees via Flask REST API, false = directe seriële COM-poort
+USE_HARDWARE  = false;   % true = hardware data, false = internal plant simulator
+USE_FLASK_API = false;   % true = lees via Flask REST API, false = directe seriële COM-poort
 COM_PORT      = 'COM3'; % seriële poort Firefly (alleen bij USE_HARDWARE=true, USE_FLASK_API=false)
 FLASK_URL     = 'http://localhost:5000'; % Flask SCADA base URL (bij USE_FLASK_API=true)
 
@@ -44,9 +44,15 @@ B_mpc_scale = 1e-3;
 y_ref = [0.25; 0.20; 0.15];
 
 % Overloopsluis (sluis 4) kalibratieconstante
-% Gecalibreerd: servo 55 → 0.20 m overstroominghoogte in pool 3.
-% h_overflow_g4 wordt automatisch berekend uit servo_g4 (ingelezen via dialog).
-h_overflow_per_servo = 0.20 / 55;   % [m / servo-eenheid]
+% De sluis is gesloten aan de onderkant en loopt af via een gat bovenaan (staande pijp).
+% Bij servo=0: overloophoogte = 0.17 m (gemeten; 2 cm boven setpoint pool 3 = 0.15 m).
+% Bij servo=55: overloophoogte = 0.20 m (3 cm extra boven servo=0).
+% Gecalibreerd: servo 55 -> 0.20 m totale overloophoogte in pool 3.
+h_overflow_min       = 0.17;           % [m] overloophoogte bij servo=0 (gemeten: 17 cm)
+h_overflow_per_servo = 0.03 / 55;     % [m / servo-eenheid] extra hoogte per servo-stap (0.20-0.17 over 55 stappen)
+
+% Run duration
+MAX_STEPS = 60;   % aantal iteraties (seconden bij 1 Hz); 1800 = 30 min volledige run
 
 % Loop timing: 0 = zo snel mogelijk (testen), 1 = real-time 1 Hz
 if USE_HARDWARE

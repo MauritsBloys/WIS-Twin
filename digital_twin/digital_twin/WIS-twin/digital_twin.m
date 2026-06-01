@@ -40,7 +40,7 @@ if isnan(servo_g4) || servo_g4 < 0 || servo_g4 > 255
     warning('digital_twin: ongeldige overloopsluis positie — gebruik 0.');
     servo_g4 = 0;
 end
-h_overflow_g4 = servo_g4 * h_overflow_per_servo;   % [m] — afgeleid uit sluispositie
+h_overflow_g4 = h_overflow_min + servo_g4 * h_overflow_per_servo;   % [m] — afgeleid uit sluispositie
 fprintf('Setpoints:      [%.3f  %.3f  %.3f] m\n',          y_ref(1),      y_ref(2),      y_ref(3));
 fprintf('Beginposities:  [%3d  %3d  %3d] servo  →  [%.3f  %.3f  %.3f] Cantoni\n', ...
         servo_init(1), servo_init(2), servo_init(3), u_init(1), u_init(2), u_init(3));
@@ -124,9 +124,6 @@ x_plant           = zeros(size(A,1), 1);
 x_plant_nompc     = zeros(size(A,1), 1);   % parallel simulatie zonder regeling
 DISTURBANCE_EPOCH = 20;
 disturbance       = [-0.015; 0; 0];
-
-%% Run duration — lower for quick tests, 1800 = 30 min full run
-MAX_STEPS = 600;
 
 %% Initialise logging
 timestamp       = char(datetime('now', 'Format', 'yyyyMMdd_HHmmss'));
@@ -233,11 +230,14 @@ while step < MAX_STEPS
         if epoch >= DISTURBANCE_EPOCH
             d_ext(wl_idx(1)) = disturbance(1);
         end
-        x_plant   = A * x_plant + B * u_prev + d_leak_sim + d_ext;
+        x_plant   = A * x_plant + B * B_mpc_scale * u_prev + d_leak_sim + d_ext;
         % Waterpeil kan fysisch niet negatief worden
         for ii = 1:3
             x_plant(wl_idx(ii)) = max(x_plant(wl_idx(ii)), -y_ref(ii));
         end
+        % Overloopsluis pool 3 (sluis 4): peil mag niet boven h_overflow_g4 uitkomen.
+        % Bij servo_g4=0 is h_overflow_g4=0 → pool 3 wordt onmiddellijk geleegd (geen retentie).
+        x_plant(wl_idx(3)) = min(x_plant(wl_idx(3)), h_overflow_g4 - y_ref(3));
         y_meas    = C * x_plant + y_ref;
         triggered = 1;
 
@@ -249,6 +249,7 @@ while step < MAX_STEPS
         for ii = 1:3
             x_plant_nompc(wl_idx(ii)) = max(x_plant_nompc(wl_idx(ii)), -y_ref(ii));
         end
+        x_plant_nompc(wl_idx(3)) = min(x_plant_nompc(wl_idx(3)), h_overflow_g4 - y_ref(3));
         y_nompc        = C * x_plant_nompc + y_ref;
     end
     step = step + 1;
@@ -264,7 +265,7 @@ while step < MAX_STEPS
     y_dev   = y_meas - y_ref;
     h_est   = C * x_hat + y_ref;
     d_leak  = twin_compute_leakage(h_est, Wis, wl_idx, size(A,1)) - d_leak_nom;
-    [x_hat, P, innov] = twin_kalman_update(A, B, C, Q_kal, R_kal, x_hat, P, y_dev, u_kal, d_leak);
+    [x_hat, P, innov] = twin_kalman_update(A, B * B_mpc_scale, C, Q_kal, R_kal, x_hat, P, y_dev, u_kal, d_leak);
 
     %% 2b. AEMF: schat lekkageparameters alpha en beta
     % Formulering: H(q)x + (L(q) + alpha.*L1 + beta.*L2) * z = 0
@@ -321,7 +322,9 @@ while step < MAX_STEPS
     % tracking-strafterm voor pool 3. De MPC kan dan sluis 2 vrijuit openen
     % om pool 2 te draineren: extra water in pool 3 loopt weg via sluis 4.
     Q_mpc_eff = Q_mpc;
-    if y_meas(3) >= h_overflow_g4 - 0.005
+    % Alleen vrijstellen als sluis 4 daadwerkelijk open staat (h_overflow_g4 > 0).
+    % Bij servo_g4=0 geldt h_overflow_g4=0 → conditie was altijd waar → pool 3 ongeregeld.
+    if h_overflow_g4 > 1e-4 && y_meas(3) >= h_overflow_g4 - 0.005
         Q_mpc_eff(3,3) = 0;
     end
 
