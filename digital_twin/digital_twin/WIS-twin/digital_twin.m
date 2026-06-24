@@ -167,6 +167,7 @@ while step < MAX_STEPS
                 resp = webread([FLASK_URL '/api/firefly/status']);
             catch e
                 fprintf('Flask API fout (%s) — stap overgeslagen.\n', e.message);
+                pause(H_LOOP);
                 continue;
             end
             if ~resp.connected
@@ -176,6 +177,7 @@ while step < MAX_STEPS
             a201 = resp.actuators.x201; a202 = resp.actuators.x202; a203 = resp.actuators.x203;
             if isempty(s2) || isempty(s4) || isempty(s6) || isempty(a201) || isempty(a202) || isempty(a203)
                 fprintf('Sensor- of actuatordata nog niet beschikbaar — stap overgeslagen.\n');
+                pause(H_LOOP);
                 continue;
             end
             epoch    = step + 1;
@@ -187,10 +189,12 @@ while step < MAX_STEPS
             try
                 serial_line = readline(device);
             catch
+                pause(H_LOOP);
                 continue;
             end
             parts = split(strtrim(serial_line), ',');
             if numel(parts) ~= 13
+                pause(H_LOOP);
                 continue;
             end
             epoch    = str2double(parts(1));
