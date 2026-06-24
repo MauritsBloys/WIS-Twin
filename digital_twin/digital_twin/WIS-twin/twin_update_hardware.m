@@ -47,11 +47,15 @@ end
 y_dev  = y_meas - y_ref;
 h_est  = C * x_hat + y_ref;
 d_leak = twin_compute_leakage(h_est, Wis, wl_idx, size(A,1)) - d_leak_nom;
-[x_hat, P, innov] = twin_kalman_update(A, B, C, Q_kal, R_kal, x_hat, P, y_dev, u_actual, d_leak);
+[x_hat, P, innov] = twin_kalman_update(A, B * B_mpc_scale, C, Q_kal, R_kal, x_hat, P, y_dev, u_actual, d_leak);
+
+% MPC: gebruik meting-gebaseerde begintoestand om A-matrix versterking te vermijden
+x_hat_mpc = zeros(size(x_hat));
+x_hat_mpc(wl_idx) = y_meas - y_ref;
 
 % MPC (berekent optimale actie; kan niet verstuurd worden via huidig PSTC-protocol)
-[u_mpc, mpc_infeasible] = twin_mpc_solve(A, B, C, x_hat, zeros(size(C,1),1), Q_mpc, R_mpc, N, ...
-                                          du_max, u_min, u_max, u_mpc_prev);
+[u_mpc, mpc_infeasible] = twin_mpc_solve(A, B * B_mpc_scale, C, x_hat_mpc, zeros(size(C,1),1), Q_mpc, R_mpc, N, ...
+                                          du_max, u_min, u_max, u_mpc_prev, d_leak);
 if mpc_infeasible
     mpc_fail_count = mpc_fail_count + 1;
     if mpc_fail_count >= 3 && ~mpc_alarm
@@ -78,11 +82,11 @@ u_mpc_prev = u_mpc;
 
 % MPC-trajectvoorspelling inclusief lekkage
 mpc_traj = zeros(3, N);
-x_tmp = x_hat;
+x_tmp = x_hat_mpc;
 for i = 1:N
     h_tmp         = C * x_tmp + y_ref;
     d_mpc         = twin_compute_leakage(h_tmp, Wis, wl_idx, size(A,1)) - d_leak_nom;
-    x_tmp         = A * x_tmp + B * u_mpc + d_mpc;
+    x_tmp         = A * x_tmp + B * B_mpc_scale * u_mpc + d_mpc;
     mpc_traj(:,i) = C * x_tmp + y_ref;
 end
 
