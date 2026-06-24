@@ -99,22 +99,6 @@ end
 % nominale lekkage af te trekken behandelen we x=0 als het ware evenwicht.
 d_leak_nom = twin_compute_leakage(y_ref, Wis, wl_idx, size(A,1));
 
-%% Laad AEMF-filter — genereer automatisch als het bestand ontbreekt
-aemf_file = fullfile(fileparts(mfilename('fullpath')), 'data', 'wis_aemf_filter.mat');
-if ~isfile(aemf_file)
-    fprintf('AEMF-filter ontbreekt — eenmalig genereren...\n');
-    wis_aemf_filter_setup;
-end
-if isfile(aemf_file)
-    tmp = load(aemf_file, 'aemf');
-    aemf_filt = tmp.aemf;
-    aemf_filt.B = aemf_filt.B * B_mpc_scale;   % match Kalman: twin gebruikt B*B_mpc_scale
-    fprintf('AEMF-filter geladen (orde %d, m=%d).\n', aemf_filt.N_degree, aemf_filt.m);
-else
-    aemf_filt = [];
-    fprintf('AEMF-filter genereren mislukt — terugvalmodus actief.\n');
-end
-
 %% Initialise Kalman state
 x_hat = zeros(size(A,1), 1);
 P     = eye(size(A,1));
@@ -156,19 +140,6 @@ innov_hist     = zeros(3, MAX_STEPS);
 u_hist         = zeros(3, MAX_STEPS);
 K_diag_hist    = zeros(3, MAX_STEPS);
 y_nompc_hist    = nan(3, MAX_STEPS);
-q_leak_est_hist = nan(3, MAX_STEPS);   % geschatte q_leak per kanaal [cm³/s]
-q_leak_nom_hist = nan(3, MAX_STEPS);   % nominale  q_leak per kanaal [cm³/s]
-
-%% AEMF lekkagefout-schatting buffers  (H(q)x + (L(q)+aL1+bL2)z formulering)
-FAULT_WINDOW      = 20;
-innov_buf         = nan(3, FAULT_WINDOW);
-hest_buf          = nan(3, FAULT_WINDOW);
-alpha_hat_hist    = nan(3, MAX_STEPS);   % geschatte alpha per kanaal [cm^0.5]
-beta_hat_hist     = nan(3, MAX_STEPS);   % geschatte beta  per kanaal [cm^1.5]
-xhat_buf          = nan(size(A,1), FAULT_WINDOW);
-u_aemf_buf        = nan(size(B,2), FAULT_WINDOW);
-aemf_was_obs_last = false;   % voor statuswijziging-print
-
 %% Open connection for hardware mode
 if USE_HARDWARE
     if USE_FLASK_API
@@ -272,62 +243,6 @@ while step < MAX_STEPS
     h_est   = C * x_hat + y_ref;
     d_leak  = twin_compute_leakage(h_est, Wis, wl_idx, size(A,1)) - d_leak_nom;
     [x_hat, P, innov] = twin_kalman_update(A, B * B_mpc_scale, C, Q_kal, R_kal, x_hat, P, y_dev, u_kal, d_leak);
-
-    %% 2b. AEMF: schat lekkageparameters alpha en beta
-    % Formulering: H(q)x + (L(q) + alpha.*L1 + beta.*L2) * z = 0
-    % z(k) = [y2; y3] = [sqrt(Dh*100); (Dh*100)^1.5]  (tijdsvariabel)
-    h_est_abs = C * x_hat + y_ref;
-    innov_buf  = [innov_buf(:,  2:end), innov];
-    hest_buf   = [hest_buf(:,   2:end), h_est_abs];
-    xhat_buf   = [xhat_buf(:,   2:end), x_hat];
-    u_aemf_buf = [u_aemf_buf(:, 2:end), u_kal];
-
-    if step >= FAULT_WINDOW
-        [alpha_now, beta_now, sigma_min_ab] = twin_estimate_leakage_alphabeta( ...
-            innov_buf, hest_buf, Wis, wl_idx, C, size(A,1), xhat_buf, u_aemf_buf, aemf_filt);
-        alpha_hat_hist(:, step) = alpha_now;
-        beta_hat_hist(:,  step) = beta_now;
-        aemf_obs_now = sigma_min_ab >= 1e-6;
-        if ~aemf_obs_now && aemf_was_obs_last
-            fprintf('Stap %d: lekkage niet meer observeerbaar (sigma_min^2=%.2e)\n', step, sigma_min_ab);
-        elseif ~aemf_obs_now && step == FAULT_WINDOW
-            fprintf('Stap %d: lekkage niet observeerbaar (sigma_min^2=%.2e) — weinig excitatie?\n', step, sigma_min_ab);
-        elseif aemf_obs_now && ~aemf_was_obs_last && step > FAULT_WINDOW
-            fprintf('Stap %d: lekkage observeerbaar (sigma_min^2=%.2e)\n', step, sigma_min_ab);
-        end
-        aemf_was_obs_last = aemf_obs_now;
-    end
-
-    %% 2c. Lekkageflow berekenen (voor live plot en SCADA)
-    h_abs_now = C * x_hat + y_ref;
-    Dh_cm_now = max(0, [Wis.h0 - h_abs_now(1); ...
-                        h_abs_now(1) - h_abs_now(2); ...
-                        h_abs_now(2) - h_abs_now(3)]) * 100;
-    q_nom_now = Wis.leak_alpha(:) .* sqrt(Dh_cm_now) + Wis.leak_beta(:) .* Dh_cm_now.^1.5;
-    q_leak_nom_hist(:, step) = q_nom_now;
-
-    lk_available = step >= FAULT_WINDOW && ~any(isnan(alpha_hat_hist(:, step)));
-    if lk_available
-        alpha_k   = alpha_hat_hist(:, step);
-        beta_k    = beta_hat_hist(:,  step);
-        q_est_now = max(0, alpha_k .* sqrt(Dh_cm_now) + beta_k .* Dh_cm_now.^1.5);
-        q_leak_est_hist(:, step) = q_est_now;
-    else
-        q_est_now = zeros(3, 1);
-    end
-
-    if USE_HARDWARE && USE_FLASK_API
-        try
-            lk_payload = struct( ...
-                'epoch',   epoch, ...
-                'available', double(lk_available), ...
-                'q_est_1', q_est_now(1), 'q_est_2', q_est_now(2), 'q_est_3', q_est_now(3), ...
-                'q_nom_1', q_nom_now(1), 'q_nom_2', q_nom_now(2), 'q_nom_3', q_nom_now(3));
-            webwrite([FLASK_URL '/api/twin/leakage'], lk_payload, ...
-                weboptions('MediaType', 'application/json', 'Timeout', 1));
-        catch
-        end
-    end
 
     %% 3. MPC — overflow-bewuste gewichten + meting-gebaseerde waterstandcorrectie
     % Als pool 3 op/boven het overflow-niveau van sluis 4 zit, verwijder de
@@ -438,9 +353,7 @@ while step < MAX_STEPS
     if PLOT_LIVE
         twin_plot_update(plt, t_vec(:,1:step), y_hist(:,1:step), y_pred_hist(:,1:step), ...
                          innov_hist(:,1:step), u_hist(:,1:step), K_diag_hist(:,1:step), ...
-                         mpc_traj, y_ref, y_nompc_hist(:,1:step), ...
-                         alpha_hat_hist(:,1:step), beta_hat_hist(:,1:step), ...
-                         q_leak_est_hist(:,1:step), q_leak_nom_hist(:,1:step));
+                         mpc_traj, y_ref, y_nompc_hist(:,1:step));
     end
 
     pause(H_LOOP);
@@ -456,5 +369,3 @@ end
 
 fprintf('Digital twin finished. Log: %s\n', log_file);
 
-%% Post-run: toon geschatte lekkagecurves
-twin_plot_leakage_curves(alpha_hat_hist(:,1:step), beta_hat_hist(:,1:step), Wis);

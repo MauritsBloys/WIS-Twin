@@ -12,14 +12,6 @@
 cd(fileparts(which('digital_twin')))
 schat_Q_R
 
-%  0b. AEMF-filtermatrices bouwen voor lekkagedetectie.
-%      Vereist: WIS-sim/simulation/distributed_workspace.mat.
-%      Resultaat → data/wis_aemf_filter.mat (auto-geladen door digital_twin.m).
-%      N.B. digital_twin.m genereert dit ook automatisch als het ontbreekt.
-
-cd(fileparts(which('digital_twin')))
-wis_aemf_filter_setup
-
 %% ── 1. DIGITAL TWIN (simulator-modus) ───────────────────────────────────
 %
 %  Draait de twin volledig in software: geen hardware nodig.

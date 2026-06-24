@@ -9,8 +9,6 @@ function twin_update_hardware(y_meas, u_actual, epoch)
 persistent x_hat P u_mpc_prev log_file log_file_latest plt ...
            t_vec y_hist y_pred_hist innov_hist u_hist K_diag_hist ...
            A B C wl_idx d_leak_nom ...
-           innov_buf hest_buf xhat_buf u_aemf_buf aemf_filt ...
-           alpha_hat_hist beta_hat_hist ...
            mpc_fail_count mpc_alarm
 
 % Lazy initialisatie bij eerste aanroep
@@ -32,22 +30,6 @@ if isempty(x_hat)
     if isfile(log_file_latest); delete(log_file_latest); end
     t_vec = []; y_hist = zeros(3,0); y_pred_hist = zeros(3,0);
     innov_hist = zeros(3,0); u_hist = zeros(3,0); K_diag_hist = zeros(3,0);
-    FAULT_WINDOW    = 20;
-    innov_buf       = nan(3, FAULT_WINDOW);
-    hest_buf        = nan(3, FAULT_WINDOW);
-    xhat_buf        = nan(size(A,1), FAULT_WINDOW);
-    u_aemf_buf      = nan(size(B,2), FAULT_WINDOW);
-    aemf_file = fullfile(fileparts(mfilename('fullpath')), 'data', 'wis_aemf_filter.mat');
-    if isfile(aemf_file)
-        tmp = load(aemf_file, 'aemf');
-        aemf_filt = tmp.aemf;
-        fprintf('AEMF-filter geladen (orde %d, m=%d).\n', aemf_filt.N_degree, aemf_filt.m);
-    else
-        aemf_filt = [];
-        fprintf('Geen AEMF-filter — terugvalmodus (run wis_aemf_filter_setup.m).\n');
-    end
-    alpha_hat_hist  = nan(3, 0);
-    beta_hat_hist   = nan(3, 0);
     mpc_fail_count = 0;
     mpc_alarm      = false;
     if PLOT_LIVE; plt = twin_plot_init(y_ref, N, [], Wis); end
@@ -66,27 +48,6 @@ y_dev  = y_meas - y_ref;
 h_est  = C * x_hat + y_ref;
 d_leak = twin_compute_leakage(h_est, Wis, wl_idx, size(A,1)) - d_leak_nom;
 [x_hat, P, innov] = twin_kalman_update(A, B, C, Q_kal, R_kal, x_hat, P, y_dev, u_actual, d_leak);
-
-% AEMF: schat lekkageparameters alpha en beta
-% H(q)x + (L(q) + alpha.*L1 + beta.*L2) * z = 0,  z = [y2; y3] = [sqrt(Dh); Dh^1.5]
-h_est_abs = C * x_hat + y_ref;
-innov_buf  = [innov_buf(:,  2:end), innov];
-hest_buf   = [hest_buf(:,   2:end), h_est_abs];
-xhat_buf   = [xhat_buf(:,   2:end), x_hat];
-u_aemf_buf = [u_aemf_buf(:, 2:end), u_actual];
-
-if ~any(isnan(innov_buf(:)))
-    [alpha_now, beta_now, sigma_min_ab] = twin_estimate_leakage_alphabeta( ...
-        innov_buf, hest_buf, Wis, wl_idx, C, size(A,1), xhat_buf, u_aemf_buf, aemf_filt);
-    if sigma_min_ab < 1e-6
-        fprintf('Epoch %d: lekkage niet observeerbaar (sigma_min^2=%.2e)\n', epoch, sigma_min_ab);
-    end
-else
-    alpha_now = nan(3,1);
-    beta_now  = nan(3,1);
-end
-alpha_hat_hist = [alpha_hat_hist, alpha_now];
-beta_hat_hist  = [beta_hat_hist,  beta_now];
 
 % MPC (berekent optimale actie; kan niet verstuurd worden via huidig PSTC-protocol)
 [u_mpc, mpc_infeasible] = twin_mpc_solve(A, B, C, x_hat, zeros(size(C,1),1), Q_mpc, R_mpc, N, ...
@@ -139,6 +100,6 @@ K_diag_hist = [K_diag_hist, [K_gain(wl_idx(1),1); K_gain(wl_idx(2),2); K_gain(wl
 
 if PLOT_LIVE
     twin_plot_update(plt, t_vec, y_hist, y_pred_hist, innov_hist, u_hist, K_diag_hist, ...
-        mpc_traj, y_ref, [], alpha_hat_hist, beta_hat_hist);
+        mpc_traj, y_ref, []);
 end
 end

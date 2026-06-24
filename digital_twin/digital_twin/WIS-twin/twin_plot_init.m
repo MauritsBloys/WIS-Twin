@@ -1,16 +1,12 @@
-function handles = twin_plot_init(y_ref, N, disturbance_epoch, Wis)
+function handles = twin_plot_init(y_ref, N, disturbance_epoch, ~)
 %TWIN_PLOT_INIT  Maak afzonderlijke figuurvensters per plot.
-%   handles = twin_plot_init(y_ref, N, disturbance_epoch, Wis)
+%   handles = twin_plot_init(y_ref, N, disturbance_epoch)
 %   y_ref             : 3x1 referentiewaterpeilen
 %   N                 : MPC-horizonlengte
 %   disturbance_epoch : tijdstap waarop verstoring begint (optioneel)
-%   Wis               : lekkage-struct voor nominale alpha-lijnen (optioneel)
 
 if nargin < 3 || isempty(disturbance_epoch)
     disturbance_epoch = [];
-end
-if nargin < 4
-    Wis = [];
 end
 
 colors = {'b','r','g'};
@@ -105,76 +101,6 @@ if ~isempty(disturbance_epoch)
     for ax = dist_axes
         xline(ax, disturbance_epoch, 'k--', 'HandleVisibility', 'off', 'LineWidth', 1);
     end
-end
-
-%% Figuur 8: Geschatte alpha en beta per kanaal (AEMF H(q)x + (L(q)+aL1+bL2)z)
-handles.fig_leak = figure('Name', 'WIS — Lekkageparameters (AEMF)', 'NumberTitle', 'off');
-
-handles.ax_alpha = subplot(2,1,1, 'Parent', handles.fig_leak);
-title(handles.ax_alpha, 'Geschatte \alpha per kanaal  (z: y2 = \surd\Deltah)');
-xlabel(handles.ax_alpha, 'Epoch (stap)'); ylabel(handles.ax_alpha, '\alpha_{eff}  [cm^{1/2}]');
-grid(handles.ax_alpha, 'on'); hold(handles.ax_alpha, 'on');
-if ~isempty(Wis)
-    for i = 1:3
-        yline(handles.ax_alpha, Wis.leak_alpha(i), [colors{i} ':'], ...
-            'LineWidth', 1.2, 'HandleVisibility', 'off');
-    end
-end
-for i = 1:3
-    handles.h_alpha(i) = plot(handles.ax_alpha, NaN, NaN, [colors{i} '-'], ...
-        'LineWidth', 1.5, 'DisplayName', sprintf('\\alpha_%d', i));
-end
-legend(handles.ax_alpha, 'Location', 'best');
-
-handles.ax_beta = subplot(2,1,2, 'Parent', handles.fig_leak);
-title(handles.ax_beta, 'Geschatte \beta per kanaal  (z: y3 = \Deltah^{3/2})');
-xlabel(handles.ax_beta, 'Epoch (stap)'); ylabel(handles.ax_beta, '\beta_{eff}  [cm^{3/2}]');
-grid(handles.ax_beta, 'on'); hold(handles.ax_beta, 'on');
-if ~isempty(Wis)
-    for i = 1:3
-        yline(handles.ax_beta, Wis.leak_beta(i), [colors{i} ':'], ...
-            'LineWidth', 1.2, 'HandleVisibility', 'off');
-    end
-end
-for i = 1:3
-    handles.h_beta(i) = plot(handles.ax_beta, NaN, NaN, [colors{i} '-'], ...
-        'LineWidth', 1.5, 'DisplayName', sprintf('\\beta_%d', i));
-end
-legend(handles.ax_beta, 'Location', 'best');
-
-%% Figuur 9: Lekkageflow per kanaal [cm³/s]
-handles.fig_qflow = figure('Name', 'WIS — Lekkageflow (AEMF)', 'NumberTitle', 'off', ...
-    'Color', 'white', 'Position', [200 200 900 520]);
-
-handles.ax_qflow = subplot(2, 1, 1, 'Parent', handles.fig_qflow);
-title(handles.ax_qflow, 'Lekkageflow q_{leak}: schatting (doorgetrokken) vs. nominaal (streep)');
-xlabel(handles.ax_qflow, 'Epoch (stap)');
-ylabel(handles.ax_qflow, 'q  [cm^3/s]');
-grid(handles.ax_qflow, 'on'); hold(handles.ax_qflow, 'on');
-ylim(handles.ax_qflow, [0 inf]);
-for i = 1:3
-    handles.h_qest(i) = plot(handles.ax_qflow, NaN, NaN, [colors{i} '-'],  ...
-        'LineWidth', 2.5, 'DisplayName', sprintf('q_{est,%d} (AEMF)', i));
-    handles.h_qnom(i) = plot(handles.ax_qflow, NaN, NaN, [colors{i} '--'], ...
-        'LineWidth', 1.2, 'DisplayName', sprintf('q_{nom,%d}', i));
-end
-legend(handles.ax_qflow, 'Location', 'northwest');
-
-handles.ax_qover = subplot(2, 1, 2, 'Parent', handles.fig_qflow);
-title(handles.ax_qover, 'Lekkage-overschot  \Deltaq = q_{est} - q_{nom}  (positief = extra lek)');
-xlabel(handles.ax_qover, 'Epoch (stap)');
-ylabel(handles.ax_qover, '\Deltaq  [cm^3/s]');
-grid(handles.ax_qover, 'on'); hold(handles.ax_qover, 'on');
-yline(handles.ax_qover, 0, 'k-', 'LineWidth', 1.2, 'HandleVisibility', 'off');
-for i = 1:3
-    handles.h_qover(i) = plot(handles.ax_qover, NaN, NaN, [colors{i} '-'], ...
-        'LineWidth', 1.5, 'DisplayName', sprintf('\\Deltaq_%d', i));
-end
-legend(handles.ax_qover, 'Location', 'northwest');
-
-if ~isempty(disturbance_epoch)
-    xline(handles.ax_qflow,  disturbance_epoch, 'k--', 'HandleVisibility', 'off', 'LineWidth', 1);
-    xline(handles.ax_qover,  disturbance_epoch, 'k--', 'HandleVisibility', 'off', 'LineWidth', 1);
 end
 
 end
